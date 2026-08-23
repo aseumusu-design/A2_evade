@@ -1,8 +1,8 @@
 -- ============================================
--- A2 ROBLOX INTRO UI - FULLSCREEN HP 100% + BLUE FIRE + AUDIO
+-- A2 ROBLOX INTRO UI v2.0 - PHOENIX REBIRTH
 -- by Kimi Chat | StarterGui > ScreenGui > LocalScript
--- BENER-BENER FULLSCREEN. Nggak ada frame. Nggak ada border.
--- UPDATE: + Audio Intro + Blue Fire Background Effect
+-- VISUAL: Phoenix Reveal + Blue Inferno + Audio Reactive
+-- BUKAN CYBERPUNK LAGI. INI PHOENIX REBIRTH STYLE.
 -- ============================================
 
 local TweenService = game:GetService("TweenService")
@@ -10,113 +10,92 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local SoundService = game:GetService("SoundService")
+local RunService = game:GetService("RunService")
 
 -- ============================================
 -- CONFIG
 -- ============================================
 local CONFIG = {
-	BackgroundColor = Color3.fromRGB(5, 5, 15),
-	Text = "A2",
-	Subtitle = "Loading Experience...",
+	-- AUDIO (Ganti dengan Asset ID sendiri)
+	Audio_Intro = "rbxassetid://9042861406",
+	Audio_Whoosh = "rbxassetid://9113083740",
+	Audio_Reveal = "rbxassetid://1846368080",
+	Audio_Ambient = "rbxassetid://9042370693",
 
-	-- AUDIO CONFIG
-	-- Ganti dengan Asset ID audio intro kamu sendiri
-	-- Contoh: Cari di Creator Store atau upload sendiri
-	-- Format: rbxassetid://ID
-	IntroSoundId = "rbxassetid://9042861406", -- Abyssal Plain (Cello) - cinematic
-	LogoSoundId = "rbxassetid://1846368080",  -- Stadium Rave - hype logo
-	A2SoundId = "rbxassetid://9042370693",    -- Speed Metal Overture - intense
+	-- WARNA TEMA PHOENIX BLUE
+	PhoenixBlue = Color3.fromRGB(0, 100, 255),
+	PhoenixCyan = Color3.fromRGB(0, 255, 255),
+	PhoenixWhite = Color3.fromRGB(200, 230, 255),
+	PhoenixDark = Color3.fromRGB(0, 20, 60),
+	PhoenixGold = Color3.fromRGB(255, 200, 100),
+	PhoenixMagenta = Color3.fromRGB(255, 0, 200),
 
-	-- Kalau mau pakai audio sendiri, ganti ID di atas
-	-- Cari audio gratis: Toolbox > Creator Store > Audio
-	-- Atau upload sendiri di Asset Manager
+	-- WARNA API BIRU (Blue Inferno)
+	InfernoCore = Color3.fromRGB(0, 150, 255),
+	InfernoHot = Color3.fromRGB(100, 220, 255),
+	InfernoCold = Color3.fromRGB(0, 50, 150),
+	InfernoAsh = Color3.fromRGB(50, 100, 180),
 
-	RobloxLogoId = "rbxassetid://113381647185328",
-	LogoDuration = 2.2,
-	LogoFadeOut = 0.8,
-
-	A2Color = Color3.fromRGB(255, 255, 255),
-	A2GlowColor = Color3.fromRGB(200, 220, 255),
-	A2ShadowColor = Color3.fromRGB(100, 150, 255),
-
-	AutoCloseDelay = 5.5,
-	CloseFadeDuration = 1.0,
-
-	NeonCyan = Color3.fromRGB(0, 255, 255),
-	NeonMagenta = Color3.fromRGB(255, 0, 255),
-	NeonPurple = Color3.fromRGB(150, 0, 255),
-	TealColor = Color3.fromRGB(0, 212, 170),
-	OrangeColor = Color3.fromRGB(255, 107, 0),
-	RedColor = Color3.fromRGB(230, 57, 70),
-	BlueColor = Color3.fromRGB(69, 123, 157),
-
-	-- BLUE FIRE CONFIG
-	FireColor1 = Color3.fromRGB(0, 150, 255),    -- Biru terang
-	FireColor2 = Color3.fromRGB(0, 255, 255),    -- Cyan
-	FireColor3 = Color3.fromRGB(100, 200, 255),  -- Biru muda
-	FireParticleCount = 40,
+	-- TIMING
+	Phase1_Duration = 3.0,
+	Phase2_Duration = 2.5,
+	AutoClose = 7.0,
 }
 
 -- ============================================
 -- UTILITY
 -- ============================================
-local function create(className, props)
-	local instance = Instance.new(className)
-	for key, value in pairs(props) do
-		instance[key] = value
-	end
-	return instance
+local function _new(class, props)
+	local inst = Instance.new(class)
+	for k, v in pairs(props or {}) do inst[k] = v end
+	return inst
 end
 
-local function tween(instance, properties, duration, easingStyle, easingDirection, delay)
-	easingStyle = easingStyle or Enum.EasingStyle.Quad
-	easingDirection = easingDirection or Enum.EasingDirection.Out
+local function _tween(obj, props, dur, style, dir, delay)
+	style = style or Enum.EasingStyle.Quad
+	dir = dir or Enum.EasingDirection.Out
 	delay = delay or 0
-	local info = TweenInfo.new(duration, easingStyle, easingDirection, 0, false, delay)
-	local tw = TweenService:Create(instance, info, properties)
+	local info = TweenInfo.new(dur, style, dir, 0, false, delay)
+	local tw = TweenService:Create(obj, info, props)
 	tw:Play()
 	return tw
 end
 
-local function randomRange(min, max)
-	return math.random() * (max - min) + min
-end
+local function _rand(a, b) return math.random() * (b - a) + a end
 
 -- ============================================
--- AUDIO SYSTEM
+-- AUDIO ENGINE
 -- ============================================
-local function createSound(name, soundId, volume, looped)
-	local sound = create("Sound", {
+local Audio = {}
+function Audio:Create(name, id, vol, looped)
+	local s = _new("Sound", {
 		Name = name,
-		SoundId = soundId,
-		Volume = volume or 0.5,
+		SoundId = id,
+		Volume = vol or 0.5,
 		Looped = looped or false,
 		Parent = SoundService,
 	})
-	return sound
+	return s
 end
 
-local introSound = createSound("IntroSound", CONFIG.IntroSoundId, 0.4, false)
-local logoSound = createSound("LogoSound", CONFIG.LogoSoundId, 0.6, false)
-local a2Sound = createSound("A2Sound", CONFIG.A2SoundId, 0.5, false)
-
-local function playSound(sound)
-	if sound and sound.SoundId ~= "" and sound.SoundId ~= "rbxassetid://" then
-		sound:Play()
-	end
+function Audio:Play(s) if s and s.SoundId ~= "" then s:Play() end end
+function Audio:Stop(s) if s then s:Stop() end end
+function Audio:FadeOut(s, dur)
+	if not s then return end
+	_tween(s, {Volume = 0}, dur or 1)
+	task.delay(dur or 1, function() s:Stop() s.Volume = (s:GetAttribute("BaseVol") or 0.5) end)
 end
 
-local function stopSound(sound)
-	if sound then
-		sound:Stop()
-	end
-end
+local sndIntro = Audio:Create("PhoenixIntro", CONFIG.Audio_Intro, 0.4, false)
+local sndWhoosh = Audio:Create("PhoenixWhoosh", CONFIG.Audio_Whoosh, 0.6, false)
+local sndReveal = Audio:Create("PhoenixReveal", CONFIG.Audio_Reveal, 0.5, false)
+local sndAmbient = Audio:Create("PhoenixAmbient", CONFIG.Audio_Ambient, 0.15, true)
 
 -- ============================================
 -- SCREEN GUI
 -- ============================================
-local screenGui = create("ScreenGui", {
-	Name = "A2IntroUI",
+local gui = _new("ScreenGui", {
+	Name = "A2PhoenixIntro",
 	Parent = playerGui,
 	ResetOnSpawn = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -124,825 +103,772 @@ local screenGui = create("ScreenGui", {
 })
 
 -- ============================================
--- BACKGROUND - FULLSCREEN 1,0,1,0
+-- LAYER 1: VIGNETTE + PULSE BACKGROUND
 -- ============================================
-local background = create("Frame", {
-	Name = "Background",
-	Parent = screenGui,
+local bg = _new("Frame", {
+	Name = "BG",
+	Parent = gui,
 	Size = UDim2.new(1, 0, 1, 0),
-	Position = UDim2.new(0, 0, 0, 0),
-	AnchorPoint = Vector2.new(0, 0),
-	BackgroundColor3 = CONFIG.BackgroundColor,
+	BackgroundColor3 = CONFIG.PhoenixDark,
 	BorderSizePixel = 0,
 	ZIndex = 1,
 })
 
--- ============================================
--- INFO TEXT (DEBUG) - Muncul di awal
--- ============================================
-local infoText = create("TextLabel", {
-	Name = "InfoText",
-	Parent = background,
-	Size = UDim2.new(1, 0, 0, 30),
-	Position = UDim2.new(0, 0, 0, 10),
-	BackgroundTransparency = 1,
-	Text = "[A2 Intro] Memuat audio & efek api biru...",
-	Font = Enum.Font.Code,
-	TextSize = 12,
-	TextColor3 = CONFIG.NeonCyan,
-	TextTransparency = 0,
-	ZIndex = 200,
-})
-
-create("UIStroke", {
-	Parent = infoText,
-	Color = CONFIG.BackgroundColor,
-	Thickness = 2,
-	Transparency = 0.5,
-})
-
--- ============================================
--- BLUE FIRE BACKGROUND EFFECT
--- ============================================
-local blueFireContainer = create("Frame", {
-	Name = "BlueFireContainer",
-	Parent = background,
+-- Vignette (gelap di pinggir)
+local vignette = _new("Frame", {
+	Name = "Vignette",
+	Parent = bg,
 	Size = UDim2.new(1, 0, 1, 0),
 	BackgroundTransparency = 1,
 	ZIndex = 2,
 })
 
-local fireColors = {CONFIG.FireColor1, CONFIG.FireColor2, CONFIG.FireColor3}
+local vignetteGradient = _new("UIGradient", {
+	Parent = vignette,
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 10, 30)),
+		ColorSequenceKeypoint.new(0.3, Color3.fromRGB(0, 20, 60)),
+		ColorSequenceKeypoint.new(0.7, Color3.fromRGB(0, 20, 60)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 10, 30)),
+	}),
+	Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.3),
+		NumberSequenceKeypoint.new(0.3, 0.8),
+		NumberSequenceKeypoint.new(0.7, 0.8),
+		NumberSequenceKeypoint.new(1, 0.3),
+	}),
+})
 
-local function spawnBlueFireParticle()
-	local color = fireColors[math.random(1, #fireColors)]
-	local sizeX = randomRange(4, 20)
-	local sizeY = randomRange(30, 120)
-	local startX = randomRange(-0.1, 1.1)
-	local duration = randomRange(1.5, 3.5)
-	local startTrans = randomRange(0.3, 0.7)
+-- Pulse glow di tengah
+local pulseGlow = _new("Frame", {
+	Name = "PulseGlow",
+	Parent = bg,
+	Size = UDim2.new(0, 600, 0, 600),
+	Position = UDim2.new(0.5, 0, 0.5, 0),
+	AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundTransparency = 1,
+	ZIndex = 2,
+})
 
-	local particle = create("Frame", {
-		Parent = blueFireContainer,
-		Name = "BlueFireParticle",
-		Size = UDim2.new(0, sizeX, 0, sizeY),
-		Position = UDim2.new(startX, 0, 1.1, 0),
-		BackgroundColor3 = color,
-		BackgroundTransparency = startTrans,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	})
+local pulseGradient = _new("UIGradient", {
+	Parent = pulseGlow,
+	Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, CONFIG.PhoenixBlue),
+		ColorSequenceKeypoint.new(0.5, CONFIG.PhoenixCyan),
+		ColorSequenceKeypoint.new(1, CONFIG.PhoenixBlue),
+	}),
+	Rotation = 90,
+})
 
-	-- Gradient untuk efek api
-	local gradient = create("UIGradient", {
-		Parent = particle,
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, color),
-			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 50, 100)),
-		}),
-		Rotation = 90,
-	})
-
-	-- Corner radius untuk bentuk api
-	create("UICorner", {
-		Parent = particle,
-		CornerRadius = UDim.new(0.5, 0),
-	})
-
-	-- Animasi naik + fade + goyang
-	local endX = startX + randomRange(-0.1, 0.1)
-	local tweenUp = tween(particle, {
-		Position = UDim2.new(endX, 0, randomRange(-0.2, 0.3), 0),
-		BackgroundTransparency = 1,
-		Size = UDim2.new(0, sizeX * 0.3, 0, sizeY * 1.5),
-		Rotation = randomRange(-20, 20),
-	}, duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-	game:GetService("Debris"):AddItem(particle, duration)
-end
-
--- Spawner api biru
-local fireSpawnerConnection
-local function startBlueFire()
-	if fireSpawnerConnection then return end
-	fireSpawnerConnection = task.spawn(function()
-		while blueFireContainer.Parent do
-			spawnBlueFireParticle()
-			task.wait(randomRange(0.02, 0.08))
-		end
-	end)
-end
-
-local function stopBlueFire()
-	-- Api biru akan berhenti spawn sendiri saat container dihapus
-end
+local pulseCorner = _new("UICorner", {
+	Parent = pulseGlow,
+	CornerRadius = UDim.new(1, 0),
+})
 
 -- ============================================
--- CYBERPUNK EFFECTS
+-- LAYER 2: BLUE INFERNO (API BIRU V2)
 -- ============================================
-
--- Diagonal lines
-local diagLines = create("Frame", {
-	Name = "DiagLines",
-	Parent = background,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 2,
-})
-
-for i = 1, 15 do
-	local line = create("Frame", {
-		Parent = diagLines,
-		Name = "Diag" .. i,
-		Size = UDim2.new(0, 2, 1.5, 0),
-		Position = UDim2.new(randomRange(-0.2, 1.2), 0, -0.25, 0),
-		BackgroundColor3 = i % 2 == 0 and CONFIG.NeonCyan or CONFIG.NeonMagenta,
-		BackgroundTransparency = 0.92,
-		BorderSizePixel = 0,
-		Rotation = 35,
-		ZIndex = 2,
-	})
-
-	task.spawn(function()
-		while line.Parent do
-			local targetX = randomRange(-0.3, 1.3)
-			tween(line, {Position = UDim2.new(targetX, 0, -0.25, 0)}, randomRange(6, 12), Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)
-			task.wait(randomRange(6, 12))
-		end
-	end)
-end
-
--- Scan bars
-local scanBars = create("Frame", {
-	Name = "ScanBars",
-	Parent = background,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 2,
-})
-
-for i = 1, 10 do
-	local bar = create("Frame", {
-		Parent = scanBars,
-		Name = "Bar" .. i,
-		Size = UDim2.new(1, 0, 0, randomRange(1, 3)),
-		Position = UDim2.new(0, 0, randomRange(0, 1), 0),
-		BackgroundColor3 = i % 3 == 0 and CONFIG.NeonPurple or (i % 2 == 0 and CONFIG.NeonCyan or CONFIG.NeonMagenta),
-		BackgroundTransparency = 0.95,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	})
-
-	task.spawn(function()
-		while bar.Parent do
-			tween(bar, {BackgroundTransparency = 0.85}, randomRange(1, 2), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(randomRange(1, 2))
-			if not bar.Parent then break end
-			tween(bar, {BackgroundTransparency = 0.96}, randomRange(1, 2), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(randomRange(1, 2))
-		end
-	end)
-end
-
--- Pillars
-local pillars = create("Frame", {
-	Name = "Pillars",
-	Parent = background,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 2,
-})
-
-for i = 1, 8 do
-	local pillar = create("Frame", {
-		Parent = pillars,
-		Name = "Pillar" .. i,
-		Size = UDim2.new(0, randomRange(2, 4), randomRange(0.3, 0.7), 0),
-		Position = UDim2.new(randomRange(0.1, 0.9), 0, randomRange(0, 0.5), 0),
-		BackgroundColor3 = i % 2 == 0 and CONFIG.NeonCyan or CONFIG.NeonMagenta,
-		BackgroundTransparency = 0.94,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	})
-
-	task.spawn(function()
-		while pillar.Parent do
-			tween(pillar, {BackgroundTransparency = 0.82, Size = UDim2.new(pillar.Size.X.Scale, pillar.Size.X.Offset, pillar.Size.Y.Scale + 0.1, 0)}, randomRange(2, 4), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(randomRange(2, 4))
-			if not pillar.Parent then break end
-			tween(pillar, {BackgroundTransparency = 0.95, Size = UDim2.new(pillar.Size.X.Scale, pillar.Size.X.Offset, pillar.Size.Y.Scale - 0.1, 0)}, randomRange(2, 4), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(randomRange(2, 4))
-		end
-	end)
-end
-
--- Digital rain
-local digitalRain = create("Frame", {
-	Name = "DigitalRain",
-	Parent = background,
+local inferno = _new("Frame", {
+	Name = "Inferno",
+	Parent = bg,
 	Size = UDim2.new(1, 0, 1, 0),
 	BackgroundTransparency = 1,
 	ZIndex = 3,
 })
 
-local function spawnRainDrop()
-	local drop = create("Frame", {
-		Parent = digitalRain,
-		Name = "RainDrop",
-		Size = UDim2.new(0, 1, 0, randomRange(20, 80)),
-		Position = UDim2.new(randomRange(0, 1), 0, -0.1, 0),
-		BackgroundColor3 = math.random() > 0.5 and CONFIG.NeonCyan or CONFIG.NeonMagenta,
-		BackgroundTransparency = 0.7,
+-- Ember system (partikel api yang melayang)
+local emberColors = {CONFIG.InfernoCore, CONFIG.InfernoHot, CONFIG.InfernoCold, CONFIG.InfernoAsh}
+
+local function spawnEmber()
+	local color = emberColors[math.random(1, #emberColors)]
+	local size = _rand(3, 12)
+	local startX = _rand(0, 1)
+	local startY = _rand(0.7, 1.1)
+	local dur = _rand(2, 5)
+	local drift = _rand(-0.15, 0.15)
+
+	local ember = _new("Frame", {
+		Parent = inferno,
+		Size = UDim2.new(0, size, 0, size),
+		Position = UDim2.new(startX, 0, startY, 0),
+		BackgroundColor3 = color,
+		BackgroundTransparency = _rand(0.2, 0.6),
 		BorderSizePixel = 0,
 		ZIndex = 3,
 	})
 
-	local duration = randomRange(1.5, 3.5)
-	tween(drop, {
-		Position = UDim2.new(drop.Position.X.Scale, 0, 1.1, 0),
-		BackgroundTransparency = 1,
-	}, duration, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
+	-- Ember gradient (hot center)
+	local eg = _new("UIGradient", {
+		Parent = ember,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+			ColorSequenceKeypoint.new(0.5, color),
+			ColorSequenceKeypoint.new(1, CONFIG.InfernoCold),
+		}),
+	})
 
-	game:GetService("Debris"):AddItem(drop, duration)
+	_ new("UICorner", {Parent = ember, CornerRadius = UDim.new(1, 0)})
+
+	-- Ember trail (duplikat yang lebih transparan di belakang)
+	local trail = _new("Frame", {
+		Parent = inferno,
+		Size = UDim2.new(0, size * 0.6, 0, size * 0.6),
+		Position = UDim2.new(startX, 0, startY, 0),
+		BackgroundColor3 = color,
+		BackgroundTransparency = 0.8,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+	})
+	_new("UICorner", {Parent = trail, CornerRadius = UDim.new(1, 0)})
+
+	-- Animate ember
+	_tween(ember, {
+		Position = UDim2.new(startX + drift, 0, _rand(-0.1, 0.2), 0),
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, size * 0.3, 0, size * 0.3),
+		Rotation = _rand(0, 360),
+	}, dur, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+	_tween(trail, {
+		Position = UDim2.new(startX + drift * 0.5, 0, _rand(-0.05, 0.15), 0),
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, size * 0.2, 0, size * 0.2),
+	}, dur * 1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+	game:GetService("Debris"):AddItem(ember, dur)
+	game:GetService("Debris"):AddItem(trail, dur * 1.2)
 end
 
-task.spawn(function()
-	while background.Parent do
-		spawnRainDrop()
-		task.wait(randomRange(0.05, 0.2))
-	end
-end)
+-- Fire columns (tiang api biru dari bawah)
+local fireColumns = _new("Frame", {
+	Name = "FireColumns",
+	Parent = bg,
+	Size = UDim2.new(1, 0, 1, 0),
+	BackgroundTransparency = 1,
+	ZIndex = 2,
+})
 
--- Corner glows
-local cornerGlows = {}
-local cornerPositions = {
-	{UDim2.new(0, 0, 0, 0), UDim2.new(0, 150, 0, 2)},
-	{UDim2.new(1, -150, 0, 0), UDim2.new(0, 150, 0, 2)},
-	{UDim2.new(0, 0, 1, -2), UDim2.new(0, 150, 0, 2)},
-	{UDim2.new(1, -150, 1, -2), UDim2.new(0, 150, 0, 2)},
-	{UDim2.new(0, 0, 0, 0), UDim2.new(0, 2, 0, 100)},
-	{UDim2.new(1, -2, 0, 0), UDim2.new(0, 2, 0, 100)},
-	{UDim2.new(0, 0, 1, -100), UDim2.new(0, 2, 0, 100)},
-	{UDim2.new(1, -2, 1, -100), UDim2.new(0, 2, 0, 100)},
-}
-
-for i, pos in ipairs(cornerPositions) do
-	local glow = create("Frame", {
-		Parent = background,
-		Name = "CornerGlow" .. i,
-		Position = pos[1],
-		Size = pos[2],
-		BackgroundColor3 = i % 2 == 0 and CONFIG.NeonCyan or CONFIG.NeonMagenta,
+for i = 1, 12 do
+	local col = _new("Frame", {
+		Parent = fireColumns,
+		Name = "Col" .. i,
+		Size = UDim2.new(0, _rand(3, 8), 0, _rand(100, 300)),
+		Position = UDim2.new(_rand(0, 1), 0, 1, 0),
+		AnchorPoint = Vector2.new(0.5, 1),
+		BackgroundColor3 = i % 2 == 0 and CONFIG.InfernoCore or CONFIG.InfernoHot,
 		BackgroundTransparency = 0.85,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+	})
+
+	local colGrad = _new("UIGradient", {
+		Parent = col,
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, CONFIG.InfernoCold),
+			ColorSequenceKeypoint.new(0.5, CONFIG.InfernoCore),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255)),
+		}),
+		Rotation = 90,
+	})
+
+	-- Animate column
+	task.spawn(function()
+		while col.Parent do
+			local h = _rand(150, 400)
+			_tween(col, {
+				Size = UDim2.new(col.Size.X.Scale, col.Size.X.Offset, 0, h),
+				BackgroundTransparency = _rand(0.7, 0.9),
+				Position = UDim2.new(col.Position.X.Scale, 0, 1, _rand(-20, 20)),
+			}, _rand(1, 2.5), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			task.wait(_rand(1, 2.5))
+		end
+	end)
+end
+
+-- ============================================
+-- LAYER 3: RIPPLE / WAVE RINGS
+-- ============================================
+local rippleContainer = _new("Frame", {
+	Name = "Ripples",
+	Parent = bg,
+	Size = UDim2.new(1, 0, 1, 0),
+	BackgroundTransparency = 1,
+	ZIndex = 4,
+})
+
+local function spawnRipple()
+	local ripple = _new("Frame", {
+		Parent = rippleContainer,
+		Size = UDim2.new(0, 50, 0, 50),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ZIndex = 4,
 	})
-	table.insert(cornerGlows, glow)
+
+	local stroke = _new("UIStroke", {
+		Parent = ripple,
+		Color = CONFIG.PhoenixCyan,
+		Thickness = 2,
+		Transparency = 0.6,
+	})
+
+	_new("UICorner", {Parent = ripple, CornerRadius = UDim.new(1, 0)})
+
+	_tween(ripple, {Size = UDim2.new(0, 800, 0, 800)}, 3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	_tween(stroke, {Transparency = 1, Thickness = 0.5}, 3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+	game:GetService("Debris"):AddItem(ripple, 3)
 end
 
-task.spawn(function()
-	while background.Parent do
-		for _, glow in ipairs(cornerGlows) do
-			tween(glow, {BackgroundTransparency = 0.7}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-		end
-		task.wait(1.5)
-		for _, glow in ipairs(cornerGlows) do
-			tween(glow, {BackgroundTransparency = 0.9}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-		end
-		task.wait(1.5)
-	end
-end)
-
--- Scanlines
-local scanlines = create("Frame", {
-	Name = "Scanlines",
-	Parent = background,
+-- ============================================
+-- LAYER 4: CHROMATIC ABERRATION LINES
+-- ============================================
+local chromatic = _new("Frame", {
+	Name = "Chromatic",
+	Parent = bg,
 	Size = UDim2.new(1, 0, 1, 0),
 	BackgroundTransparency = 1,
+	ZIndex = 5,
+})
+
+local chromLines = {}
+for i = 1, 20 do
+	local line = _new("Frame", {
+		Parent = chromatic,
+		Name = "ChLine" .. i,
+		Size = UDim2.new(1, 0, 0, _rand(1, 3)),
+		Position = UDim2.new(0, 0, _rand(0, 1), 0),
+		BackgroundColor3 = i % 2 == 0 and CONFIG.PhoenixBlue or CONFIG.PhoenixMagenta,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 5,
+	})
+	table.insert(chromLines, line)
+end
+
+-- ============================================
+-- LAYER 5: SPLIT REVEAL MASKS
+-- ============================================
+local splitLeft = _new("Frame", {
+	Name = "SplitLeft",
+	Parent = bg,
+	Size = UDim2.new(0.5, 0, 1, 0),
+	Position = UDim2.new(0, 0, 0, 0),
+	BackgroundColor3 = CONFIG.PhoenixDark,
+	BorderSizePixel = 0,
 	ZIndex = 50,
 })
-for i = 0, 100 do
-	create("Frame", {
-		Parent = scanlines,
-		Size = UDim2.new(1, 0, 0, 2),
-		Position = UDim2.new(0, 0, 0, i * 4),
-		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = 0.85,
-		BorderSizePixel = 0,
-	})
-end
 
--- ============================================
--- ROBLOX LOGO (BULET)
--- ============================================
-local logoPhase = create("Frame", {
-	Name = "LogoPhase",
-	Parent = background,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 100,
+local splitRight = _new("Frame", {
+	Name = "SplitRight",
+	Parent = bg,
+	Size = UDim2.new(0.5, 0, 1, 0),
+	Position = UDim2.new(0.5, 0, 0, 0),
+	BackgroundColor3 = CONFIG.PhoenixDark,
+	BorderSizePixel = 0,
+	ZIndex = 50,
 })
 
-local robloxLogo = create("ImageLabel", {
-	Name = "RobloxLogo",
-	Parent = logoPhase,
-	Size = UDim2.new(0, 200, 0, 200),
-	Position = UDim2.new(0.5, 0, 0.5, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundTransparency = 1,
-	Image = CONFIG.RobloxLogoId,
-	ImageTransparency = 1,
-	ZIndex = 100,
-})
-
-create("UICorner", {Parent = robloxLogo, CornerRadius = UDim.new(1, 0)})
-
-local logoRing = create("Frame", {
-	Name = "LogoRing",
-	Parent = logoPhase,
-	Size = UDim2.new(0, 240, 0, 240),
-	Position = UDim2.new(0.5, 0, 0.5, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
+-- Garis tengah neon
+local splitLine = _new("Frame", {
+	Name = "SplitLine",
+	Parent = bg,
+	Size = UDim2.new(0, 4, 1, 0),
+	Position = UDim2.new(0.5, 0, 0, 0),
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundColor3 = CONFIG.PhoenixCyan,
 	BackgroundTransparency = 1,
 	BorderSizePixel = 0,
-	ZIndex = 99,
-})
-create("UICorner", {Parent = logoRing, CornerRadius = UDim.new(1, 0)})
-local ringStroke = create("UIStroke", {
-	Parent = logoRing,
-	Color = Color3.fromRGB(255, 255, 255),
-	Thickness = 3,
-	Transparency = 1,
-})
-
-local innerRing = create("Frame", {
-	Name = "InnerRing",
-	Parent = logoPhase,
-	Size = UDim2.new(0, 220, 0, 220),
-	Position = UDim2.new(0.5, 0, 0.5, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ZIndex = 98,
-})
-create("UICorner", {Parent = innerRing, CornerRadius = UDim.new(1, 0)})
-local innerStroke = create("UIStroke", {
-	Parent = innerRing,
-	Color = CONFIG.NeonCyan,
-	Thickness = 2,
-	Transparency = 1,
+	ZIndex = 51,
 })
 
 -- ============================================
--- A2 TEXT - LEBAR
+-- LAYER 6: A2 TEXT - PHOENIX STYLE
 -- ============================================
-local a2Container = create("Frame", {
-	Name = "A2Container",
-	Parent = background,
-	Size = UDim2.new(0, 700, 0, 250),
+local textContainer = _new("Frame", {
+	Name = "TextContainer",
+	Parent = bg,
+	Size = UDim2.new(0, 800, 0, 300),
 	Position = UDim2.new(0.5, 0, 0.5, 0),
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	BackgroundTransparency = 1,
 	ZIndex = 10,
 	Visible = false,
+	ClipsDescendants = true,
 })
 
-local glowLayers = {
-	{ color = CONFIG.A2ShadowColor, offset = 14, transparency = 0.7, size = 145 },
-	{ color = CONFIG.A2GlowColor,   offset = 10, transparency = 0.5, size = 135 },
-	{ color = Color3.fromRGB(255, 255, 255), offset = 5, transparency = 0.3, size = 128 },
+-- Shadow layers (phoenix trail effect)
+local shadowColors = {
+	{col = CONFIG.InfernoCold, off = 20, trans = 0.85, size = 160},
+	{col = CONFIG.PhoenixBlue, off = 14, trans = 0.7, size = 150},
+	{col = CONFIG.PhoenixCyan, off = 8, trans = 0.5, size = 140},
+	{col = CONFIG.InfernoHot, off = 4, trans = 0.3, size = 132},
 }
-for i, layer in ipairs(glowLayers) do
-	local glow = create("TextLabel", {
-		Parent = a2Container,
-		Name = "Glow" .. i,
+
+for i, sh in ipairs(shadowColors) do
+	local shadow = _new("TextLabel", {
+		Parent = textContainer,
+		Name = "Shadow" .. i,
 		Size = UDim2.new(1, 0, 1, 0),
-		Position = UDim2.new(0, layer.offset, 0, layer.offset),
+		Position = UDim2.new(0, sh.off, 0, sh.off),
 		BackgroundTransparency = 1,
-		Text = CONFIG.Text,
+		Text = "A2",
 		Font = Enum.Font.Arcade,
-		TextSize = layer.size,
-		TextColor3 = layer.color,
+		TextSize = sh.size,
+		TextColor3 = sh.col,
 		TextTransparency = 1,
 		ZIndex = 10 - i,
 	})
 end
 
-local a2Text = create("TextLabel", {
-	Parent = a2Container,
-	Name = "A2Text",
+local mainText = _new("TextLabel", {
+	Parent = textContainer,
+	Name = "MainText",
 	Size = UDim2.new(1, 0, 1, 0),
 	BackgroundTransparency = 1,
-	Text = CONFIG.Text,
+	Text = "A2",
 	Font = Enum.Font.Arcade,
-	TextSize = 120,
-	TextColor3 = CONFIG.A2Color,
+	TextSize = 128,
+	TextColor3 = CONFIG.PhoenixWhite,
 	TextTransparency = 1,
 	ZIndex = 10,
 })
 
-local a2Stroke = create("UIStroke", {
-	Parent = a2Text,
-	Color = Color3.fromRGB(255, 255, 255),
-	Thickness = 5,
+local textStroke = _new("UIStroke", {
+	Parent = mainText,
+	Color = CONFIG.PhoenixCyan,
+	Thickness = 4,
 	Transparency = 1,
 })
 
-local a2GlowFrame = create("Frame", {
-	Parent = a2Container,
-	Name = "A2GlowFrame",
-	Size = UDim2.new(1, 120, 1, 80),
-	Position = UDim2.new(0, -60, 0, -40),
-	BackgroundTransparency = 1,
-	ZIndex = 9,
-})
-local a2GlowStroke = create("UIStroke", {
-	Parent = a2GlowFrame,
-	Color = Color3.fromRGB(255, 255, 255),
-	Thickness = 25,
+local textGlow = _new("UIStroke", {
+	Parent = mainText,
+	Color = CONFIG.PhoenixBlue,
+	Thickness = 20,
 	Transparency = 1,
+	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 })
 
-local subtitle = create("TextLabel", {
-	Parent = a2Container,
+-- Subtitle
+local subText = _new("TextLabel", {
+	Parent = textContainer,
 	Name = "Subtitle",
-	Size = UDim2.new(1, 0, 0, 30),
-	Position = UDim2.new(0, 0, 1, 15),
+	Size = UDim2.new(1, 0, 0, 40),
+	Position = UDim2.new(0, 0, 1, 20),
 	BackgroundTransparency = 1,
 	Text = "",
 	Font = Enum.Font.Code,
-	TextSize = 14,
-	TextColor3 = CONFIG.TealColor,
-	TextTransparency = 0,
+	TextSize = 16,
+	TextColor3 = CONFIG.PhoenixGold,
+	TextTransparency = 1,
 	ZIndex = 10,
 })
 
 -- ============================================
--- CORNER BRACKETS
+-- LAYER 7: HEXAGON GRID (Futuristic)
 -- ============================================
-local function createBracket(position, anchor)
-	local bracket = create("Frame", {
-		Parent = background,
-		Size = UDim2.new(0, 30, 0, 30),
-		Position = position,
-		AnchorPoint = anchor,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ZIndex = 12,
-	})
-	local h = create("Frame", {
-		Parent = bracket,
-		Size = UDim2.new(1, 0, 0, 3),
-		BackgroundColor3 = CONFIG.NeonCyan,
-		BorderSizePixel = 0,
-	})
-	local v = create("Frame", {
-		Parent = bracket,
-		Size = UDim2.new(0, 3, 1, 0),
-		BackgroundColor3 = CONFIG.NeonCyan,
-		BorderSizePixel = 0,
-	})
-	if position.X.Scale > 0.5 then
-		h.Position = UDim2.new(0, 0, 0, 0); h.AnchorPoint = Vector2.new(1, 0)
-		v.Position = UDim2.new(1, 0, 0, 0); v.AnchorPoint = Vector2.new(1, 0)
-	end
-	if position.Y.Scale > 0.5 then
-		h.Position = UDim2.new(0, 0, 1, 0); h.AnchorPoint = Vector2.new(0, 1)
-		v.Position = UDim2.new(0, 0, 1, 0); v.AnchorPoint = Vector2.new(0, 1)
-		if position.X.Scale > 0.5 then
-			h.AnchorPoint = Vector2.new(1, 1)
-			v.AnchorPoint = Vector2.new(1, 1)
+local hexContainer = _new("Frame", {
+	Name = "HexGrid",
+	Parent = bg,
+	Size = UDim2.new(1, 0, 1, 0),
+	BackgroundTransparency = 1,
+	ZIndex = 2,
+})
+
+local hexagons = {}
+for row = 0, 8 do
+	for col = 0, 12 do
+		local hex = _new("Frame", {
+			Parent = hexContainer,
+			Size = UDim2.new(0, 30, 0, 30),
+			Position = UDim2.new(0, col * 80 + (row % 2) * 40, 0, row * 70),
+			BackgroundColor3 = CONFIG.PhoenixBlue,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		})
+		_new("UICorner", {Parent = hex, CornerRadius = UDim.new(0, 6)})
+
+		-- Only show some hexagons
+		if math.random() > 0.7 then
+			hex.BackgroundTransparency = _rand(0.9, 0.97)
+			table.insert(hexagons, hex)
 		end
 	end
-	return bracket
 end
 
-createBracket(UDim2.new(0, 20, 0, 20), Vector2.new(0, 0))
-createBracket(UDim2.new(1, -20, 0, 20), Vector2.new(1, 0))
-createBracket(UDim2.new(0, 20, 1, -20), Vector2.new(0, 1))
-createBracket(UDim2.new(1, -20, 1, -20), Vector2.new(1, 1))
-
--- ============================================
--- FLOATING BLOCKS
--- ============================================
-local blockColors = {CONFIG.RedColor, CONFIG.TealColor, CONFIG.BlueColor, CONFIG.OrangeColor}
-local blockPositions = {
-	UDim2.new(0.1, 0, 0.15, 0),
-	UDim2.new(0.88, 0, 0.7, 0),
-	UDim2.new(0.15, 0, 0.8, 0),
-	UDim2.new(0.82, 0, 0.25, 0),
-}
-for i = 1, 4 do
-	local block = create("Frame", {
-		Parent = background,
-		Name = "Block" .. i,
-		Size = UDim2.new(0, 20, 0, 20),
-		Position = blockPositions[i],
-		BackgroundColor3 = blockColors[i],
-		BorderSizePixel = 0,
-		ZIndex = 5,
-	})
-	create("UICorner", {Parent = block, CornerRadius = UDim.new(0, 3)})
+-- Animate hexagons randomly
+for _, hex in ipairs(hexagons) do
 	task.spawn(function()
-		while block.Parent do
-			tween(block, {Position = UDim2.new(blockPositions[i].X.Scale, blockPositions[i].X.Offset, blockPositions[i].Y.Scale, blockPositions[i].Y.Offset - 15)}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(1.5)
-			if not block.Parent then break end
-			tween(block, {Position = blockPositions[i]}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(1.5)
+		while hex.Parent do
+			task.wait(_rand(2, 6))
+			if not hex.Parent then break end
+			_tween(hex, {BackgroundTransparency = _rand(0.7, 0.9)}, 0.5)
+			task.wait(0.5)
+			if not hex.Parent then break end
+			_tween(hex, {BackgroundTransparency = _rand(0.9, 0.97)}, 0.5)
 		end
 	end)
 end
 
 -- ============================================
--- PARTICLES
+-- LAYER 8: PARTICLE BURST SYSTEM
 -- ============================================
-local particleColors = {Color3.fromRGB(255,255,255), CONFIG.A2GlowColor, CONFIG.TealColor, CONFIG.OrangeColor, CONFIG.BlueColor}
-local function spawnParticle()
-	local color = particleColors[math.random(1, #particleColors)]
-	local size = randomRange(4, 10)
-	local startX = randomRange(0, 1)
-	local duration = randomRange(3, 8)
-	local particle = create("Frame", {
-		Parent = background,
-		Name = "Particle",
-		Size = UDim2.new(0, size, 0, size),
-		Position = UDim2.new(startX, 0, 1, 0),
-		BackgroundColor3 = color,
-		BorderSizePixel = 0,
-		BackgroundTransparency = 0,
-		ZIndex = 3,
-	})
-	create("UICorner", {Parent = particle, CornerRadius = UDim.new(0, math.random() > 0.5 and size/2 or 2)})
-	tween(particle, {
-		Position = UDim2.new(startX + randomRange(-0.1, 0.1), 0, -0.1, 0),
-		BackgroundTransparency = 1,
-		Rotation = randomRange(0, 360),
-	}, duration, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
-	game:GetService("Debris"):AddItem(particle, duration)
-end
-
-task.spawn(function()
-	while background.Parent do
-		spawnParticle()
-		task.wait(randomRange(0.1, 0.4))
-	end
-end)
-
--- ============================================
--- GLITCH
--- ============================================
-local glitchFrame = create("Frame", {
-	Name = "GlitchOverlay",
-	Parent = background,
+local burstContainer = _new("Frame", {
+	Name = "BurstContainer",
+	Parent = bg,
 	Size = UDim2.new(1, 0, 1, 0),
 	BackgroundTransparency = 1,
-	ZIndex = 20,
+	ZIndex = 15,
 })
 
-task.spawn(function()
-	while glitchFrame.Parent do
-		task.wait(randomRange(2, 5))
-		if not glitchFrame.Parent then break end
-		glitchFrame.BackgroundColor3 = CONFIG.OrangeColor
-		glitchFrame.BackgroundTransparency = 0.9
-		task.wait(0.05)
-		glitchFrame.BackgroundTransparency = 1
-		task.wait(0.05)
-		glitchFrame.BackgroundColor3 = CONFIG.TealColor
-		glitchFrame.BackgroundTransparency = 0.85
-		task.wait(0.05)
-		glitchFrame.BackgroundTransparency = 1
-		task.wait(0.05)
-		glitchFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		glitchFrame.BackgroundTransparency = 0.9
-		task.wait(0.05)
-		glitchFrame.BackgroundTransparency = 1
+local function particleBurst(count, centerX, centerY)
+	for i = 1, count do
+		local angle = (math.pi * 2 / count) * i + _rand(-0.2, 0.2)
+		local dist = _rand(100, 400)
+		local size = _rand(3, 10)
+		local color = emberColors[math.random(1, #emberColors)]
+
+		local p = _new("Frame", {
+			Parent = burstContainer,
+			Size = UDim2.new(0, size, 0, size),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			BackgroundColor3 = color,
+			BackgroundTransparency = 0,
+			BorderSizePixel = 0,
+			ZIndex = 15,
+		})
+		_new("UICorner", {Parent = p, CornerRadius = UDim.new(1, 0)})
+
+		_tween(p, {
+			Position = UDim2.new(0.5, math.cos(angle) * dist, 0.5, math.sin(angle) * dist),
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, 0, 0, 0),
+		}, _rand(0.8, 1.5), Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+		game:GetService("Debris"):AddItem(p, 1.5)
 	end
-end)
+end
+
+-- ============================================
+-- LAYER 9: SCANLINE CRT EFFECT
+-- ============================================
+local crt = _new("Frame", {
+	Name = "CRT",
+	Parent = bg,
+	Size = UDim2.new(1, 0, 1, 0),
+	BackgroundTransparency = 1,
+	ZIndex = 100,
+})
+
+for i = 0, 60 do
+	_new("Frame", {
+		Parent = crt,
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 0, i * 12),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 0.92,
+		BorderSizePixel = 0,
+	})
+end
+
+-- ============================================
+-- LAYER 10: INFO PANEL (Audio Status)
+-- ============================================
+local infoPanel = _new("Frame", {
+	Name = "InfoPanel",
+	Parent = bg,
+	Size = UDim2.new(0, 350, 0, 60),
+	Position = UDim2.new(0.5, 0, 0, 20),
+	AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundColor3 = Color3.fromRGB(0, 10, 30),
+	BackgroundTransparency = 0.3,
+	BorderSizePixel = 0,
+	ZIndex = 200,
+})
+_new("UICorner", {Parent = infoPanel, CornerRadius = UDim.new(0, 8)})
+_new("UIStroke", {Parent = infoPanel, Color = CONFIG.PhoenixCyan, Thickness = 1, Transparency = 0.5})
+
+local infoLabel = _new("TextLabel", {
+	Parent = infoPanel,
+	Size = UDim2.new(1, -20, 1, -10),
+	Position = UDim2.new(0, 10, 0, 5),
+	BackgroundTransparency = 1,
+	Text = "[PHOENIX v2.0] Memuat sistem...",
+	Font = Enum.Font.Code,
+	TextSize = 11,
+	TextColor3 = CONFIG.PhoenixCyan,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	ZIndex = 200,
+})
+
+-- Audio visualizer bars (fake)
+local vizContainer = _new("Frame", {
+	Parent = infoPanel,
+	Size = UDim2.new(0, 60, 0, 20),
+	Position = UDim2.new(1, -70, 0.5, -10),
+	BackgroundTransparency = 1,
+	ZIndex = 200,
+})
+
+local vizBars = {}
+for i = 1, 5 do
+	local bar = _new("Frame", {
+		Parent = vizContainer,
+		Size = UDim2.new(0, 6, 0, 4),
+		Position = UDim2.new(0, (i-1) * 12, 0.5, 0),
+		AnchorPoint = Vector2.new(0, 0.5),
+		BackgroundColor3 = CONFIG.PhoenixCyan,
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		ZIndex = 200,
+	})
+	_new("UICorner", {Parent = bar, CornerRadius = UDim.new(0, 2)})
+	table.insert(vizBars, bar)
+end
+
+-- Animate visualizer
+for _, bar in ipairs(vizBars) do
+	task.spawn(function()
+		while bar.Parent do
+			_tween(bar, {Size = UDim2.new(0, 6, 0, _rand(4, 18))}, 0.15)
+			task.wait(0.15)
+		end
+	end)
+end
 
 -- ============================================
 -- REPLAY BUTTON
 -- ============================================
-local replayBtn = create("TextButton", {
-	Parent = background,
-	Name = "ReplayButton",
-	Size = UDim2.new(0, 120, 0, 36),
-	Position = UDim2.new(0.5, 0, 1, -50),
+local replayBtn = _new("TextButton", {
+	Parent = bg,
+	Name = "ReplayBtn",
+	Size = UDim2.new(0, 140, 0, 40),
+	Position = UDim2.new(0.5, 0, 1, -60),
 	AnchorPoint = Vector2.new(0.5, 1),
-	BackgroundColor3 = CONFIG.BackgroundColor,
+	BackgroundColor3 = Color3.fromRGB(0, 15, 40),
 	BackgroundTransparency = 0,
-	Text = "▶ REPLAY",
+	Text = "↻ REPLAY",
 	Font = Enum.Font.Code,
-	TextSize = 12,
-	TextColor3 = Color3.fromRGB(255, 255, 255),
+	TextSize = 13,
+	TextColor3 = CONFIG.PhoenixWhite,
 	ZIndex = 30,
 	Visible = false,
 	AutoButtonColor = true,
 })
-create("UIStroke", {Parent = replayBtn, Color = CONFIG.NeonCyan, Thickness = 2})
-create("UICorner", {Parent = replayBtn, CornerRadius = UDim.new(0, 8)})
+_new("UIStroke", {Parent = replayBtn, Color = CONFIG.PhoenixCyan, Thickness = 2})
+_new("UICorner", {Parent = replayBtn, CornerRadius = UDim.new(0, 10)})
 
 replayBtn.MouseEnter:Connect(function()
-	tween(replayBtn, {BackgroundColor3 = CONFIG.NeonCyan}, 0.3)
-	tween(replayBtn, {TextColor3 = CONFIG.BackgroundColor}, 0.3)
+	_tween(replayBtn, {BackgroundColor3 = CONFIG.PhoenixBlue}, 0.2)
+	_tween(replayBtn, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
 end)
 replayBtn.MouseLeave:Connect(function()
-	tween(replayBtn, {BackgroundColor3 = CONFIG.BackgroundColor}, 0.3)
-	tween(replayBtn, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.3)
+	_tween(replayBtn, {BackgroundColor3 = Color3.fromRGB(0, 15, 40)}, 0.2)
+	_tween(replayBtn, {TextColor3 = CONFIG.PhoenixWhite}, 0.2)
 end)
 
 -- ============================================
--- AUTO CLOSE
+-- CLOSE FUNCTION
 -- ============================================
-local function closeIntro()
-	-- Stop all sounds
-	stopSound(introSound)
-	stopSound(logoSound)
-	stopSound(a2Sound)
+local function closeAll()
+	Audio:FadeOut(sndAmbient, 1)
+	Audio:FadeOut(sndReveal, 0.5)
 
-	-- Fade out info text
-	if infoText.Parent then
-		tween(infoText, {TextTransparency = 1}, 0.5)
-	end
+	_tween(infoPanel, {BackgroundTransparency = 1}, 0.5)
+	_tween(infoLabel, {TextTransparency = 1}, 0.5)
+	for _, bar in ipairs(vizBars) do _tween(bar, {BackgroundTransparency = 1}, 0.5) end
 
-	tween(background, {BackgroundTransparency = 1}, CONFIG.CloseFadeDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	_tween(bg, {BackgroundTransparency = 1}, 1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
-	for _, child in ipairs(background:GetDescendants()) do
-		if child:IsA("Frame") and child ~= background then
-			tween(child, {BackgroundTransparency = 1}, CONFIG.CloseFadeDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	for _, child in ipairs(bg:GetDescendants()) do
+		if child:IsA("Frame") and child ~= bg then
+			_tween(child, {BackgroundTransparency = 1}, 1.2)
 		elseif child:IsA("TextLabel") or child:IsA("TextButton") then
-			tween(child, {TextTransparency = 1}, CONFIG.CloseFadeDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-		elseif child:IsA("ImageLabel") then
-			tween(child, {ImageTransparency = 1}, CONFIG.CloseFadeDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			_tween(child, {TextTransparency = 1}, 1.2)
 		elseif child:IsA("UIStroke") then
-			tween(child, {Transparency = 1}, CONFIG.CloseFadeDuration, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+			_tween(child, {Transparency = 1}, 1.2)
+		elseif child:IsA("UIGradient") then
+			-- handled by parent
 		end
 	end
 
-	task.delay(CONFIG.CloseFadeDuration + 0.2, function()
-		if screenGui.Parent then
-			screenGui:Destroy()
-			print("[A2 Intro] Intro selesai & dihapus! Audio dimatikan.")
+	task.delay(1.4, function()
+		if gui.Parent then
+			gui:Destroy()
+			print("[A2 Phoenix v2.0] Intro selesai. Sistem dimatikan.")
 		end
 	end)
 end
 
 -- ============================================
--- ANIMATION
+-- MAIN ANIMATION - PHOENIX REBIRTH SEQUENCE
 -- ============================================
-local function playIntro()
-	-- Reset states
-	robloxLogo.ImageTransparency = 1
-	robloxLogo.Size = UDim2.new(0, 150, 0, 150)
-	robloxLogo.Rotation = 0
-
-	logoRing.Size = UDim2.new(0, 190, 0, 190)
-	ringStroke.Transparency = 1
-
-	innerRing.Size = UDim2.new(0, 170, 0, 170)
-	innerStroke.Transparency = 1
-
-	logoPhase.Visible = true
-	a2Container.Visible = false
-	a2Text.TextTransparency = 1
-	a2Stroke.Transparency = 1
-	a2GlowStroke.Transparency = 1
-
-	for _, child in ipairs(a2Container:GetChildren()) do
-		if child:IsA("TextLabel") and child.Name:find("Glow") then
-			child.TextTransparency = 1
-		end
-	end
-	subtitle.Text = ""
+local function playSequence()
+	-- RESET
+	splitLeft.Visible = true
+	splitRight.Visible = true
+	splitLine.Visible = true
+	textContainer.Visible = false
+	mainText.TextTransparency = 1
+	textStroke.Transparency = 1
+	textGlow.Transparency = 1
+	subText.Text = ""
+	subText.TextTransparency = 1
 	replayBtn.Visible = false
 
-	-- Update info text
-	infoText.Text = "[A2 Intro] Fase Logo + Api Biru Aktif + Audio: " .. CONFIG.LogoSoundId
-
-	-- PHASE 1: LOGO + BLUE FIRE + AUDIO
-	startBlueFire()
-	playSound(logoSound)
-
-	tween(robloxLogo, {ImageTransparency = 0}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-	tween(logoRing, {Size = UDim2.new(0, 280, 0, 280)}, 1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.2)
-	tween(ringStroke, {Transparency = 0.6}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
-
-	tween(innerRing, {Size = UDim2.new(0, 240, 0, 240)}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
-	tween(innerStroke, {Transparency = 0.5}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.4)
-
-	tween(robloxLogo, {Size = UDim2.new(0, 210, 0, 210)}, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0.5)
-	task.wait(1.2)
-	if not robloxLogo.Parent then return end
-	tween(robloxLogo, {Size = UDim2.new(0, 190, 0, 190)}, 1.0, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-
-	task.wait(CONFIG.LogoDuration - 1.2)
-	if not robloxLogo.Parent then return end
-
-	tween(robloxLogo, {ImageTransparency = 1, Size = UDim2.new(0, 320, 0, 320), Rotation = 20}, CONFIG.LogoFadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	tween(logoRing, {Size = UDim2.new(0, 450, 0, 450)}, CONFIG.LogoFadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	tween(ringStroke, {Transparency = 1}, CONFIG.LogoFadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	tween(innerRing, {Size = UDim2.new(0, 380, 0, 380)}, CONFIG.LogoFadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	tween(innerStroke, {Transparency = 1}, CONFIG.LogoFadeOut, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-
-	task.wait(CONFIG.LogoFadeOut + 0.2)
-	logoPhase.Visible = false
-
-	-- Stop logo sound, play A2 sound
-	stopSound(logoSound)
-	playSound(a2Sound)
-
-	-- Update info text
-	infoText.Text = "[A2 Intro] Fase A2 + Audio: " .. CONFIG.A2SoundId
-
-	-- PHASE 2: A2
-	a2Container.Visible = true
-	a2Container.Size = UDim2.new(0, 420, 0, 150)
-	a2Container.Position = UDim2.new(0.5, 0, 0.5, 40)
-
-	tween(a2Container, {
-		Size = UDim2.new(0, 740, 0, 260),
-		Position = UDim2.new(0.5, 0, 0.5, -10)
-	}, 0.7, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-
-	for i, child in ipairs(a2Container:GetChildren()) do
-		if child:IsA("TextLabel") and child.Name:find("Glow") then
-			tween(child, {TextTransparency = 0.35}, 0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.2 + (i * 0.08))
+	for _, sh in ipairs(textContainer:GetChildren()) do
+		if sh:IsA("TextLabel") and sh.Name:find("Shadow") then
+			sh.TextTransparency = 1
 		end
 	end
 
-	tween(a2Text, {TextTransparency = 0}, 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
+	-- PHASE 0: Setup
+	infoLabel.Text = "[PHOENIX v2.0] Blue Inferno + Audio System Active"
+	Audio:Play(sndAmbient)
 
-	tween(a2Stroke, {Transparency = 0.05}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.4)
-	tween(a2GlowStroke, {Transparency = 0.55}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.5)
+	-- Start ember spawner
+	task.spawn(function()
+		while inferno.Parent do
+			spawnEmber()
+			task.wait(_rand(0.03, 0.1))
+		end
+	end)
 
-	tween(a2Container, {
-		Size = UDim2.new(0, 700, 0, 250),
-		Position = UDim2.new(0.5, 0, 0.5, 0)
-	}, 0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.7)
+	-- Pulse glow animation
+	task.spawn(function()
+		while pulseGlow.Parent do
+			_tween(pulseGlow, {BackgroundTransparency = _rand(0.85, 0.95), Size = UDim2.new(0, _rand(500, 700), 0, _rand(500, 700))}, 2)
+			task.wait(2)
+		end
+	end)
 
+	-- PHASE 1: SPLIT SCREEN OPENING (0-2s)
+	task.wait(0.5)
+	Audio:Play(sndIntro)
+
+	-- Split line appears
+	_tween(splitLine, {BackgroundTransparency = 0}, 0.3)
+	task.wait(0.3)
+
+	-- Chromatic lines flash
+	for _, line in ipairs(chromLines) do
+		_tween(line, {BackgroundTransparency = _rand(0.7, 0.9)}, 0.1)
+	end
+	task.wait(0.1)
+	for _, line in ipairs(chromLines) do
+		_tween(line, {BackgroundTransparency = 1}, 0.3)
+	end
+
+	-- Split opens
+	_tween(splitLeft, {Position = UDim2.new(-0.5, 0, 0, 0)}, 1.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	_tween(splitRight, {Position = UDim2.new(1, 0, 0, 0)}, 1.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	_tween(splitLine, {Size = UDim2.new(0, 4, 0, 0), BackgroundTransparency = 1}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0.5)
+
+	task.wait(1.0)
+	splitLeft.Visible = false
+	splitRight.Visible = false
+
+	-- PHASE 2: RIPPLE + LOGO REVEAL (2-4s)
+	spawnRipple()
+	Audio:Play(sndWhoosh)
+
+	infoLabel.Text = "[PHOENIX v2.0] Revealing A2 Identity..."
+
+	-- PHASE 3: A2 TEXT REVEAL (4-6s)
+	textContainer.Visible = true
+	textContainer.Size = UDim2.new(0, 0, 0, 0)
+
+	_tween(textContainer, {Size = UDim2.new(0, 800, 0, 300)}, 0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+
+	-- Shadow layers appear with delay
+	for i, sh in ipairs(textContainer:GetChildren()) do
+		if sh:IsA("TextLabel") and sh.Name:find("Shadow") then
+			_tween(sh, {TextTransparency = 0.4}, 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.1 + (i * 0.1))
+		end
+	end
+
+	_tween(mainText, {TextTransparency = 0}, 0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
+	_tween(textStroke, {Transparency = 0.1}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.4)
+	_tween(textGlow, {Transparency = 0.6}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.5)
+
+	-- Particle burst
+	task.delay(0.5, function()
+		particleBurst(30, 0.5, 0.5)
+		Audio:Play(sndReveal)
+	end)
+
+	-- Text breathing effect
 	task.delay(1.5, function()
-		local text = CONFIG.Subtitle
-		for i = 1, #text do
-			if not subtitle.Parent then break end
-			subtitle.Text = string.sub(text, 1, i)
-			task.wait(0.08)
+		while mainText.Parent and mainText.TextTransparency < 0.5 do
+			_tween(textGlow, {Transparency = 0.3}, 1.5)
+			_tween(textStroke, {Transparency = 0}, 1.5)
+			task.wait(1.5)
+			if not mainText.Parent then break end
+			_tween(textGlow, {Transparency = 0.7}, 1.5)
+			_tween(textStroke, {Transparency = 0.2}, 1.5)
+			task.wait(1.5)
 		end
 	end)
 
-	task.delay(2, function()
-		while a2Text.Parent and a2Text.TextTransparency < 0.5 do
-			tween(a2GlowStroke, {Transparency = 0.25}, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			tween(a2Stroke, {Transparency = 0}, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(1.2)
-			if not a2Text.Parent then break end
-			tween(a2GlowStroke, {Transparency = 0.65}, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			tween(a2Stroke, {Transparency = 0.15}, 1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			task.wait(1.2)
+	-- Typewriter subtitle
+	task.delay(2.5, function()
+		local msg = "Phoenix Rebirth Protocol Initiated..."
+		for i = 1, #msg do
+			if not subText.Parent then break end
+			subText.Text = string.sub(msg, 1, i)
+			_tween(subText, {TextTransparency = 0}, 0.1)
+			task.wait(0.06)
 		end
 	end)
 
-	task.delay(3.5, function()
+	-- Show replay button
+	task.delay(4, function()
 		if replayBtn.Parent then
 			replayBtn.Visible = true
-			tween(replayBtn, {TextTransparency = 0}, 0.5)
+			_tween(replayBtn, {TextTransparency = 0}, 0.5)
 		end
 	end)
 
-	-- Fade out info text
-	task.delay(4, function()
-		if infoText.Parent then
-			tween(infoText, {TextTransparency = 1}, 1)
+	-- Fade info
+	task.delay(5, function()
+		_tween(infoPanel, {BackgroundTransparency = 1}, 1)
+		_tween(infoLabel, {TextTransparency = 1}, 1)
+		for _, bar in ipairs(vizBars) do
+			_tween(bar, {BackgroundTransparency = 1}, 1)
 		end
 	end)
 
-	-- AUTO CLOSE
-	task.delay(CONFIG.AutoCloseDelay, function()
-		if screenGui.Parent then
-			closeIntro()
-		end
+	-- Auto close
+	task.delay(CONFIG.AutoClose, function()
+		if gui.Parent then closeAll() end
 	end)
 end
 
 -- ============================================
 -- START
 -- ============================================
-infoText.Text = "[A2 Intro] Audio Loaded: " .. CONFIG.IntroSoundId .. " | Blue Fire: ON"
-playSound(introSound)
-playIntro()
+playSequence()
 
 replayBtn.MouseButton1Click:Connect(function()
 	replayBtn.Visible = false
-	infoText.Text = "[A2 Intro] Replay dimulai..."
-	infoText.TextTransparency = 0
-	playIntro()
+	infoPanel.BackgroundTransparency = 0.3
+	infoLabel.TextTransparency = 0
+	infoLabel.Text = "[PHOENIX v2.0] Replay dimulai..."
+	for _, bar in ipairs(vizBars) do bar.BackgroundTransparency = 0.3 end
+
+	-- Reset split
+	splitLeft.Position = UDim2.new(0, 0, 0, 0)
+	splitRight.Position = UDim2.new(0.5, 0, 0, 0)
+	splitLine.Size = UDim2.new(0, 4, 1, 0)
+	splitLine.BackgroundTransparency = 1
+
+	playSequence()
 end)
 
-print("[A2 Intro] FULLSCREEN 100% HP Loaded! + BLUE FIRE + AUDIO SYSTEM!")
-print("[A2 Intro] Audio IDs:")
-print("  - Intro: " .. CONFIG.IntroSoundId)
-print("  - Logo:  " .. CONFIG.LogoSoundId)
-print("  - A2:    " .. CONFIG.A2SoundId)
-print("[A2 Intro] Ganti ID audio di CONFIG jika perlu!")
+print("[A2 Phoenix v2.0] LOADED!")
+print("[A2 Phoenix v2.0] Style: Phoenix Rebirth + Blue Inferno + Audio Reactive")
+print("[A2 Phoenix v2.0] Ganti Audio ID di CONFIG.Audio_Intro / Whoosh / Reveal / Ambient")
