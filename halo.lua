@@ -1,5 +1,5 @@
 -- ============================================
--- A2 INTRO - SAFE SYNC EDITION (FIXED)
+-- A2 INTRO - DYNAMIC LOGO & SYNC EDITION
 -- StarterGui > ScreenGui > LocalScript
 -- ============================================
 
@@ -20,7 +20,7 @@ local CONFIG = {
 	TextColor = Color3.fromRGB(255, 255, 255),
 	GlowColor = Color3.fromRGB(0, 220, 255),
 	
-	LogoShowDuration = 2.0,
+	LogoShowDuration = 2.5,
 	AutoCloseDelay = 7.0,
 }
 
@@ -28,7 +28,7 @@ local CONFIG = {
 -- SCREEN GUI (FULLSCREEN)
 -- ============================================
 local gui = Instance.new("ScreenGui")
-gui.Name = "A2SafeIntro"
+gui.Name = "A2DynamicIntro"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.DisplayOrder = 999
@@ -82,7 +82,7 @@ local success, introSound = pcall(function()
 end)
 
 -- ============================================
--- LOGO
+-- LOGO (DENGAN ANIMASI GERAK & ROTASI)
 -- ============================================
 local logoContainer = Instance.new("Frame")
 logoContainer.Name = "LogoContainer"
@@ -93,12 +93,13 @@ logoContainer.Parent = bg
 
 local logo = Instance.new("ImageLabel")
 logo.Name = "Logo"
-logo.Size = UDim2.new(0, 180, 0, 180)
+logo.Size = UDim2.new(0, 80, 0, 80) -- Mulai dari kecil
 logo.Position = UDim2.new(0.5, 0, 0.4, 0)
 logo.AnchorPoint = Vector2.new(0.5, 0.5)
 logo.BackgroundTransparency = 1
 logo.Image = CONFIG.LogoId
 logo.ImageTransparency = 1
+logo.Rotation = -30 -- Mulai sedikit miring
 logo.ZIndex = 10
 logo.Parent = logoContainer
 
@@ -108,7 +109,7 @@ logoCorner.Parent = logo
 
 local glowRing = Instance.new("Frame")
 glowRing.Name = "GlowRing"
-glowRing.Size = UDim2.new(0, 220, 0, 220)
+glowRing.Size = UDim2.new(0, 100, 0, 100)
 glowRing.Position = UDim2.new(0.5, 0, 0.4, 0)
 glowRing.AnchorPoint = Vector2.new(0.5, 0.5)
 glowRing.BackgroundTransparency = 1
@@ -183,18 +184,34 @@ a2Stroke.Parent = a2Text
 -- ANIMATION RUNNER
 -- ============================================
 task.spawn(function()
-	-- Fade-in logo awal
-	TweenService:Create(logo, TweenInfo.new(1.0), {ImageTransparency = 0}):Play()
-	TweenService:Create(logo, TweenInfo.new(1.2, Enum.EasingStyle.Back), {Size = UDim2.new(0, 180, 0, 180)}):Play()
+	-- 1. Animasi Logo Masuk (Zoom-in, Memutar lurus, & Fade-in)
+	TweenService:Create(logo, TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		ImageTransparency = 0,
+		Size = UDim2.new(0, 180, 0, 180),
+		Rotation = 0
+	}):Play()
+
+	TweenService:Create(glowRing, TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Size = UDim2.new(0, 220, 0, 220)
+	}):Play()
+
 	TweenService:Create(ringStroke, TweenInfo.new(1.0), {Transparency = 0.5}):Play()
 
-	task.wait(CONFIG.LogoShowDuration)
+	-- Efek Denyut (Pulse) pelan pada logo sebelum hilang
+	task.wait(1.2)
+	local pulseTween1 = TweenService:Create(logo, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), {Size = UDim2.new(0, 200, 0, 200)})
+	local pulseTween2 = TweenService:Create(glowRing, TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true), {Size = UDim2.new(0, 250, 0, 250)})
+	pulseTween1:Play()
+	pulseTween2:Play()
 
-	-- Hilangkan logo
-	TweenService:Create(logo, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 1}):Play()
-	TweenService:Create(ringStroke, TweenInfo.new(0.6), {Transparency = 1}):Play()
+	task.wait(CONFIG.LogoShowDuration - 1.2)
 
-	-- Putar audio & tampilkan teks bersamaan
+	-- 2. Hilangkan Logo
+	TweenService:Create(logo, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 1, Size = UDim2.new(0, 140, 0, 140)}):Play()
+	TweenService:Create(glowRing, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 140, 0, 140)}):Play()
+	TweenService:Create(ringStroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
+
+	-- 3. Putar Audio & Munculkan Teks Bersamaan
 	if success and introSound then
 		pcall(function() introSound:Play() end)
 	end
@@ -207,15 +224,15 @@ task.spawn(function()
 	local targetMsg = "WELCOME"
 	for i = 1, #targetMsg do
 		welcomeText.Text = string.sub(targetMsg, 1, i) .. " ┃"
-		task.wait(0.1)
+		task.wait(0.08)
 	end
 	welcomeText.Text = targetMsg
 
-	-- Munculkan teks "A2" di bawahnya
-	TweenService:Create(a2Text, TweenInfo.new(0.5, Enum.EasingStyle.Back), {TextTransparency = 0}):Play()
+	-- Munculkan Teks "A2" di Bawahnya dengan Efek Pop-up
+	TweenService:Create(a2Text, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
 	TweenService:Create(a2Stroke, TweenInfo.new(0.5), {Transparency = 0.1}):Play()
 
-	-- Auto Close
+	-- 4. Auto Close
 	task.delay(CONFIG.AutoCloseDelay, function()
 		TweenService:Create(bg, TweenInfo.new(1.0), {BackgroundTransparency = 1}):Play()
 		for _, v in ipairs(bg:GetDescendants()) do
@@ -232,4 +249,4 @@ task.spawn(function()
 	end)
 end)
 
-print("[A2 Intro] Loaded Successfully!")
+print("[A2 Intro] Dynamic Logo Edition Loaded!")
