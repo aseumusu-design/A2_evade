@@ -1,5 +1,5 @@
 -- ============================================
--- A2 INTRO - PURPLE FIRE & SLOW TYPEWRITER
+-- A2 INTRO - WHITE & BLUE TEXT + PURPLE FIRE
 -- StarterGui > ScreenGui > LocalScript
 -- ============================================
 
@@ -16,10 +16,13 @@ local CONFIG = {
 	AudioId = "rbxassetid://119705891276529",
 	LogoId = "rbxassetid://113381647185328",
 
-	BgColor = Color3.fromRGB(5, 2, 10), -- Nuansa gelap keunguan
-	TextColor = Color3.fromRGB(255, 255, 255),
-	GlowColor = Color3.fromRGB(180, 50, 255), -- Ungu neon
-	FireColor = Color3.fromRGB(140, 0, 255),
+	BgColor = Color3.fromRGB(5, 2, 10), -- Background gelap keunguan
+	
+	-- Warna Teks: Putih dengan gradasi biru menyala
+	TextColor = Color3.fromRGB(240, 248, 255),     -- Putih kebiruan (AliceBlue)
+	TextGlowColor = Color3.fromRGB(0, 150, 255),  -- Biru terang menyala
+	
+	FireColor = Color3.fromRGB(150, 0, 255),      -- Warna api ungu
 	
 	LogoShowDuration = 2.0,
 	AutoCloseDelay = 5.0,
@@ -29,7 +32,7 @@ local CONFIG = {
 -- SCREEN GUI (FULLSCREEN)
 -- ============================================
 local gui = Instance.new("ScreenGui")
-gui.Name = "A2PurpleFireIntro"
+gui.Name = "A2BlueWhiteIntro"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.DisplayOrder = 999
@@ -47,7 +50,7 @@ bg.BorderSizePixel = 0
 bg.ZIndex = 1
 bg.Parent = gui
 
--- Membuat Partikel Api Ungu di Latar Belakang menggunakan UIgradient / Frame Bergerak
+-- Container Bara Api Ungu di Background
 local fireContainer = Instance.new("Frame")
 fireContainer.Name = "PurpleFireContainer"
 fireContainer.Size = UDim2.new(1, 0, 1, 0)
@@ -55,7 +58,6 @@ fireContainer.BackgroundTransparency = 1
 fireContainer.ZIndex = 2
 fireContainer.Parent = bg
 
--- Fungsi spawner bara api ungu melayang ke atas
 local function spawnFireParticle()
 	local size = math.random(15, 35)
 	local startX = math.random(0, 100) / 100
@@ -74,7 +76,6 @@ local function spawnFireParticle()
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = particle
 	
-	-- Efek gradasi api
 	local grad = Instance.new("UIGradient")
 	grad.Transparency = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 0),
@@ -83,7 +84,6 @@ local function spawnFireParticle()
 	grad.Rotation = 90
 	grad.Parent = particle
 
-	-- Animasi melayang ke atas seperti bara api
 	local targetX = startX + (math.random(-20, 20) / 100)
 	TweenService:Create(particle, TweenInfo.new(duration, Enum.EasingStyle.Sine), {
 		Position = UDim2.new(targetX, 0, -0.2, 0),
@@ -94,7 +94,6 @@ local function spawnFireParticle()
 	game:GetService("Debris"):AddItem(particle, duration)
 end
 
--- Looping memunculkan api ungu
 task.spawn(function()
 	while bg.Parent do
 		spawnFireParticle()
@@ -156,13 +155,13 @@ ringCorner.CornerRadius = UDim.new(1, 0)
 ringCorner.Parent = glowRing
 
 local ringStroke = Instance.new("UIStroke")
-ringStroke.Color = CONFIG.GlowColor
+ringStroke.Color = CONFIG.TextGlowColor
 ringStroke.Thickness = 3
 ringStroke.Transparency = 1
 ringStroke.Parent = glowRing
 
 -- ============================================
--- TEXT CONTAINER (WELCOME & A2)
+-- TEXT CONTAINER (WELCOME & A2 - PUTIH BIRU)
 -- ============================================
 local textContainer = Instance.new("Frame")
 textContainer.Name = "TextContainer"
@@ -174,7 +173,7 @@ textContainer.ZIndex = 10
 textContainer.Visible = false
 textContainer.Parent = bg
 
--- Baris Atas: WELCOME
+-- Baris Atas: WELCOME (Putih dengan outline/stroke Biru)
 local welcomeText = Instance.new("TextLabel")
 welcomeText.Name = "WelcomeText"
 welcomeText.Size = UDim2.new(1, 0, 0, 60)
@@ -189,12 +188,12 @@ welcomeText.ZIndex = 10
 welcomeText.Parent = textContainer
 
 local welcomeStroke = Instance.new("UIStroke")
-welcomeStroke.Color = CONFIG.GlowColor
+welcomeStroke.Color = CONFIG.TextGlowColor
 welcomeStroke.Thickness = 2
 welcomeStroke.Transparency = 1
 welcomeStroke.Parent = welcomeText
 
--- Baris Bawah: A2
+-- Baris Bawah: A2 (Warna Biru Menyala dengan outline Putih)
 local a2Text = Instance.new("TextLabel")
 a2Text.Name = "A2Text"
 a2Text.Size = UDim2.new(1, 0, 0, 70)
@@ -203,7 +202,7 @@ a2Text.BackgroundTransparency = 1
 a2Text.Text = "A2"
 a2Text.Font = Enum.Font.Arcade
 a2Text.TextSize = 72
-a2Text.TextColor3 = CONFIG.GlowColor
+a2Text.TextColor3 = CONFIG.TextGlowColor
 a2Text.TextTransparency = 1
 a2Text.ZIndex = 10
 a2Text.Parent = textContainer
@@ -247,7 +246,7 @@ task.spawn(function()
 	welcomeText.TextTransparency = 0
 	welcomeStroke.Transparency = 0.2
 
-	-- Efek Ketik "WELCOME ┃" (Diperlambat/selow banget satu-satu: 0.18 detik per huruf)
+	-- Efek Ketik "WELCOME ┃" (Selow satu-satu: 0.18 detik per huruf)
 	local targetMsg = "WELCOME"
 	for i = 1, #targetMsg do
 		welcomeText.Text = string.sub(targetMsg, 1, i) .. " ┃"
@@ -255,7 +254,7 @@ task.spawn(function()
 	end
 	welcomeText.Text = targetMsg
 
-	-- Munculkan Teks "A2" di Bawahnya secara dramatis
+	-- Munculkan Teks "A2" di Bawahnya (Warna Biru)
 	TweenService:Create(a2Text, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
 	TweenService:Create(a2Stroke, TweenInfo.new(0.5), {Transparency = 0.1}):Play()
 
@@ -276,4 +275,4 @@ task.spawn(function()
 	end)
 end)
 
-print("[A2 Intro] Purple Fire & Slow Typewriter Loaded!")
+print("[A2 Intro] White-Blue Text & Purple Fire Loaded!")
