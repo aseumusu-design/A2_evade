@@ -1,5 +1,5 @@
 -- ============================================
--- A2 INTRO - PERFECT SPEED & FAST CLOSE
+-- A2 INTRO - PURPLE FIRE & SLOW TYPEWRITER
 -- StarterGui > ScreenGui > LocalScript
 -- ============================================
 
@@ -16,19 +16,20 @@ local CONFIG = {
 	AudioId = "rbxassetid://119705891276529",
 	LogoId = "rbxassetid://113381647185328",
 
-	BgColor = Color3.fromRGB(3, 3, 10),
+	BgColor = Color3.fromRGB(5, 2, 10), -- Nuansa gelap keunguan
 	TextColor = Color3.fromRGB(255, 255, 255),
-	GlowColor = Color3.fromRGB(0, 220, 255),
+	GlowColor = Color3.fromRGB(180, 50, 255), -- Ungu neon
+	FireColor = Color3.fromRGB(140, 0, 255),
 	
 	LogoShowDuration = 2.0,
-	AutoCloseDelay = 4.5, -- Dipercepat agar tidak terlalu lama di akhir
+	AutoCloseDelay = 5.0,
 }
 
 -- ============================================
 -- SCREEN GUI (FULLSCREEN)
 -- ============================================
 local gui = Instance.new("ScreenGui")
-gui.Name = "A2PerfectIntro"
+gui.Name = "A2PurpleFireIntro"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.DisplayOrder = 999
@@ -36,7 +37,7 @@ gui.IgnoreGuiInset = true
 gui.Parent = playerGui
 
 -- ============================================
--- BACKGROUND
+-- BACKGROUND & PURPLE FIRE EFFECT
 -- ============================================
 local bg = Instance.new("Frame")
 bg.Name = "BG"
@@ -46,27 +47,60 @@ bg.BorderSizePixel = 0
 bg.ZIndex = 1
 bg.Parent = gui
 
--- Background Stars
-local starContainer = Instance.new("Frame")
-starContainer.Name = "Stars"
-starContainer.Size = UDim2.new(1, 0, 1, 0)
-starContainer.BackgroundTransparency = 1
-starContainer.ZIndex = 2
-starContainer.Parent = bg
+-- Membuat Partikel Api Ungu di Latar Belakang menggunakan UIgradient / Frame Bergerak
+local fireContainer = Instance.new("Frame")
+fireContainer.Name = "PurpleFireContainer"
+fireContainer.Size = UDim2.new(1, 0, 1, 0)
+fireContainer.BackgroundTransparency = 1
+fireContainer.ZIndex = 2
+fireContainer.Parent = bg
 
-for i = 1, 30 do
-	local star = Instance.new("Frame")
-	star.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
-	star.Position = UDim2.new(math.random(), 0, math.random(), 0)
-	star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-	star.BackgroundTransparency = math.random() * 0.6 + 0.2
-	star.BorderSizePixel = 0
-	star.Parent = starContainer
+-- Fungsi spawner bara api ungu melayang ke atas
+local function spawnFireParticle()
+	local size = math.random(15, 35)
+	local startX = math.random(0, 100) / 100
+	local duration = math.random(15, 25) / 10
+	
+	local particle = Instance.new("Frame")
+	particle.Size = UDim2.new(0, size, 0, size)
+	particle.Position = UDim2.new(startX, 0, 1.1, 0)
+	particle.BackgroundColor3 = CONFIG.FireColor
+	particle.BackgroundTransparency = 0.4
+	particle.BorderSizePixel = 0
+	particle.ZIndex = 2
+	particle.Parent = fireContainer
 	
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = star
+	corner.Parent = particle
+	
+	-- Efek gradasi api
+	local grad = Instance.new("UIGradient")
+	grad.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(1, 1)
+	})
+	grad.Rotation = 90
+	grad.Parent = particle
+
+	-- Animasi melayang ke atas seperti bara api
+	local targetX = startX + (math.random(-20, 20) / 100)
+	TweenService:Create(particle, TweenInfo.new(duration, Enum.EasingStyle.Sine), {
+		Position = UDim2.new(targetX, 0, -0.2, 0),
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, size * 0.5, 0, size * 0.5)
+	}):Play()
+
+	game:GetService("Debris"):AddItem(particle, duration)
 end
+
+-- Looping memunculkan api ungu
+task.spawn(function()
+	while bg.Parent do
+		spawnFireParticle()
+		task.wait(0.15)
+	end
+end)
 
 -- ============================================
 -- AUDIO
@@ -213,19 +247,19 @@ task.spawn(function()
 	welcomeText.TextTransparency = 0
 	welcomeStroke.Transparency = 0.2
 
-	-- Efek Ketik "WELCOME ┃" (Diperlambat sedikit jadi 0.1s per huruf agar pas dibaca)
+	-- Efek Ketik "WELCOME ┃" (Diperlambat/selow banget satu-satu: 0.18 detik per huruf)
 	local targetMsg = "WELCOME"
 	for i = 1, #targetMsg do
 		welcomeText.Text = string.sub(targetMsg, 1, i) .. " ┃"
-		task.wait(0.12)
+		task.wait(0.18)
 	end
 	welcomeText.Text = targetMsg
 
-	-- Munculkan Teks "A2" di Bawahnya
-	TweenService:Create(a2Text, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
-	TweenService:Create(a2Stroke, TweenInfo.new(0.4), {Transparency = 0.1}):Play()
+	-- Munculkan Teks "A2" di Bawahnya secara dramatis
+	TweenService:Create(a2Text, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {TextTransparency = 0}):Play()
+	TweenService:Create(a2Stroke, TweenInfo.new(0.5), {Transparency = 0.1}):Play()
 
-	-- 4. Auto Close Cepat (Langsung ilang setelah selesai nampil)
+	-- 4. Auto Close Cepat di Akhir
 	task.delay(CONFIG.AutoCloseDelay, function()
 		TweenService:Create(bg, TweenInfo.new(0.6), {BackgroundTransparency = 1}):Play()
 		for _, v in ipairs(bg:GetDescendants()) do
@@ -242,4 +276,4 @@ task.spawn(function()
 	end)
 end)
 
-print("[A2 Intro] Speed & Fast Close Loaded!")
+print("[A2 Intro] Purple Fire & Slow Typewriter Loaded!")
