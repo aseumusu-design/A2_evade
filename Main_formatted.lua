@@ -1,8 +1,6 @@
 -- ============================================
--- A2 ROBLOX INTRO UI v2.0 - PHOENIX REBIRTH
--- by Kimi Chat | StarterGui > ScreenGui > LocalScript
--- VISUAL: Phoenix Reveal + Blue Inferno + Audio Reactive
--- BUKAN CYBERPUNK LAGI. INI PHOENIX REBIRTH STYLE.
+-- A2 ROBLOX INTRO UI v2.1 - PHOENIX REBIRTH (FIXED)
+-- StarterGui > ScreenGui > LocalScript
 -- ============================================
 
 local TweenService = game:GetService("TweenService")
@@ -10,19 +8,16 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local SoundService = game:GetService("SoundService")
-local RunService = game:GetService("RunService")
 
 -- ============================================
 -- CONFIG
 -- ============================================
 local CONFIG = {
-	-- AUDIO (Ganti dengan Asset ID sendiri)
 	Audio_Intro = "rbxassetid://9042861406",
 	Audio_Whoosh = "rbxassetid://9113083740",
 	Audio_Reveal = "rbxassetid://1846368080",
 	Audio_Ambient = "rbxassetid://9042370693",
 
-	-- WARNA TEMA PHOENIX BLUE
 	PhoenixBlue = Color3.fromRGB(0, 100, 255),
 	PhoenixCyan = Color3.fromRGB(0, 255, 255),
 	PhoenixWhite = Color3.fromRGB(200, 230, 255),
@@ -30,15 +25,11 @@ local CONFIG = {
 	PhoenixGold = Color3.fromRGB(255, 200, 100),
 	PhoenixMagenta = Color3.fromRGB(255, 0, 200),
 
-	-- WARNA API BIRU (Blue Inferno)
 	InfernoCore = Color3.fromRGB(0, 150, 255),
 	InfernoHot = Color3.fromRGB(100, 220, 255),
 	InfernoCold = Color3.fromRGB(0, 50, 150),
 	InfernoAsh = Color3.fromRGB(50, 100, 180),
 
-	-- TIMING
-	Phase1_Duration = 3.0,
-	Phase2_Duration = 2.5,
 	AutoClose = 7.0,
 }
 
@@ -47,11 +38,14 @@ local CONFIG = {
 -- ============================================
 local function _new(class, props)
 	local inst = Instance.new(class)
-	for k, v in pairs(props or {}) do inst[k] = v end
+	for k, v in pairs(props or {}) do
+		inst[k] = v
+	end
 	return inst
 end
 
 local function _tween(obj, props, dur, style, dir, delay)
+	if not obj or not obj.Parent then return nil end
 	style = style or Enum.EasingStyle.Quad
 	dir = dir or Enum.EasingDirection.Out
 	delay = delay or 0
@@ -61,7 +55,9 @@ local function _tween(obj, props, dur, style, dir, delay)
 	return tw
 end
 
-local function _rand(a, b) return math.random() * (b - a) + a end
+local function _rand(a, b)
+	return math.random() * (b - a) + a
+end
 
 -- ============================================
 -- AUDIO ENGINE
@@ -78,12 +74,27 @@ function Audio:Create(name, id, vol, looped)
 	return s
 end
 
-function Audio:Play(s) if s and s.SoundId ~= "" then s:Play() end end
-function Audio:Stop(s) if s then s:Stop() end end
+function Audio:Play(s)
+	if s and s.SoundId ~= "" and s.SoundId ~= "rbxassetid://" then
+		pcall(function() s:Play() end)
+	end
+end
+
+function Audio:Stop(s)
+	if s then
+		pcall(function() s:Stop() end)
+	end
+end
+
 function Audio:FadeOut(s, dur)
 	if not s then return end
-	_tween(s, {Volume = 0}, dur or 1)
-	task.delay(dur or 1, function() s:Stop() s.Volume = (s:GetAttribute("BaseVol") or 0.5) end)
+	pcall(function()
+		_tween(s, {Volume = 0}, dur or 1)
+		task.delay(dur or 1, function()
+			pcall(function() s:Stop() end)
+			s.Volume = (s:GetAttribute("BaseVol") or 0.5)
+		end)
+	end)
 end
 
 local sndIntro = Audio:Create("PhoenixIntro", CONFIG.Audio_Intro, 0.4, false)
@@ -103,7 +114,7 @@ local gui = _new("ScreenGui", {
 })
 
 -- ============================================
--- LAYER 1: VIGNETTE + PULSE BACKGROUND
+-- BACKGROUND
 -- ============================================
 local bg = _new("Frame", {
 	Name = "BG",
@@ -114,7 +125,7 @@ local bg = _new("Frame", {
 	ZIndex = 1,
 })
 
--- Vignette (gelap di pinggir)
+-- Vignette
 local vignette = _new("Frame", {
 	Name = "Vignette",
 	Parent = bg,
@@ -123,7 +134,7 @@ local vignette = _new("Frame", {
 	ZIndex = 2,
 })
 
-local vignetteGradient = _new("UIGradient", {
+_new("UIGradient", {
 	Parent = vignette,
 	Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 10, 30)),
@@ -139,7 +150,7 @@ local vignetteGradient = _new("UIGradient", {
 	}),
 })
 
--- Pulse glow di tengah
+-- Pulse glow
 local pulseGlow = _new("Frame", {
 	Name = "PulseGlow",
 	Parent = bg,
@@ -150,7 +161,7 @@ local pulseGlow = _new("Frame", {
 	ZIndex = 2,
 })
 
-local pulseGradient = _new("UIGradient", {
+_new("UIGradient", {
 	Parent = pulseGlow,
 	Color = ColorSequence.new({
 		ColorSequenceKeypoint.new(0, CONFIG.PhoenixBlue),
@@ -160,13 +171,13 @@ local pulseGradient = _new("UIGradient", {
 	Rotation = 90,
 })
 
-local pulseCorner = _new("UICorner", {
+_new("UICorner", {
 	Parent = pulseGlow,
 	CornerRadius = UDim.new(1, 0),
 })
 
 -- ============================================
--- LAYER 2: BLUE INFERNO (API BIRU V2)
+-- BLUE INFERNO
 -- ============================================
 local inferno = _new("Frame", {
 	Name = "Inferno",
@@ -176,19 +187,19 @@ local inferno = _new("Frame", {
 	ZIndex = 3,
 })
 
--- Ember system (partikel api yang melayang)
 local emberColors = {CONFIG.InfernoCore, CONFIG.InfernoHot, CONFIG.InfernoCold, CONFIG.InfernoAsh}
 
 local function spawnEmber()
 	local color = emberColors[math.random(1, #emberColors)]
 	local size = _rand(3, 12)
-	local startX = _rand(0, 1)
+	local startX = _rand(-0.1, 1.1)
 	local startY = _rand(0.7, 1.1)
 	local dur = _rand(2, 5)
 	local drift = _rand(-0.15, 0.15)
 
 	local ember = _new("Frame", {
 		Parent = inferno,
+		Name = "Ember",
 		Size = UDim2.new(0, size, 0, size),
 		Position = UDim2.new(startX, 0, startY, 0),
 		BackgroundColor3 = color,
@@ -197,8 +208,7 @@ local function spawnEmber()
 		ZIndex = 3,
 	})
 
-	-- Ember gradient (hot center)
-	local eg = _new("UIGradient", {
+	_new("UIGradient", {
 		Parent = ember,
 		Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -207,11 +217,11 @@ local function spawnEmber()
 		}),
 	})
 
-	_ new("UICorner", {Parent = ember, CornerRadius = UDim.new(1, 0)})
+	_new("UICorner", {Parent = ember, CornerRadius = UDim.new(1, 0)})
 
-	-- Ember trail (duplikat yang lebih transparan di belakang)
 	local trail = _new("Frame", {
 		Parent = inferno,
+		Name = "Trail",
 		Size = UDim2.new(0, size * 0.6, 0, size * 0.6),
 		Position = UDim2.new(startX, 0, startY, 0),
 		BackgroundColor3 = color,
@@ -221,7 +231,6 @@ local function spawnEmber()
 	})
 	_new("UICorner", {Parent = trail, CornerRadius = UDim.new(1, 0)})
 
-	-- Animate ember
 	_tween(ember, {
 		Position = UDim2.new(startX + drift, 0, _rand(-0.1, 0.2), 0),
 		BackgroundTransparency = 1,
@@ -239,7 +248,7 @@ local function spawnEmber()
 	game:GetService("Debris"):AddItem(trail, dur * 1.2)
 end
 
--- Fire columns (tiang api biru dari bawah)
+-- Fire columns
 local fireColumns = _new("Frame", {
 	Name = "FireColumns",
 	Parent = bg,
@@ -261,7 +270,7 @@ for i = 1, 12 do
 		ZIndex = 2,
 	})
 
-	local colGrad = _new("UIGradient", {
+	_new("UIGradient", {
 		Parent = col,
 		Color = ColorSequence.new({
 			ColorSequenceKeypoint.new(0, CONFIG.InfernoCold),
@@ -271,7 +280,6 @@ for i = 1, 12 do
 		Rotation = 90,
 	})
 
-	-- Animate column
 	task.spawn(function()
 		while col.Parent do
 			local h = _rand(150, 400)
@@ -286,7 +294,7 @@ for i = 1, 12 do
 end
 
 -- ============================================
--- LAYER 3: RIPPLE / WAVE RINGS
+-- RIPPLE SYSTEM
 -- ============================================
 local rippleContainer = _new("Frame", {
 	Name = "Ripples",
@@ -323,7 +331,7 @@ local function spawnRipple()
 end
 
 -- ============================================
--- LAYER 4: CHROMATIC ABERRATION LINES
+-- CHROMATIC LINES
 -- ============================================
 local chromatic = _new("Frame", {
 	Name = "Chromatic",
@@ -349,7 +357,7 @@ for i = 1, 20 do
 end
 
 -- ============================================
--- LAYER 5: SPLIT REVEAL MASKS
+-- SPLIT REVEAL MASKS
 -- ============================================
 local splitLeft = _new("Frame", {
 	Name = "SplitLeft",
@@ -371,7 +379,6 @@ local splitRight = _new("Frame", {
 	ZIndex = 50,
 })
 
--- Garis tengah neon
 local splitLine = _new("Frame", {
 	Name = "SplitLine",
 	Parent = bg,
@@ -385,7 +392,7 @@ local splitLine = _new("Frame", {
 })
 
 -- ============================================
--- LAYER 6: A2 TEXT - PHOENIX STYLE
+-- A2 TEXT - PHOENIX STYLE
 -- ============================================
 local textContainer = _new("Frame", {
 	Name = "TextContainer",
@@ -399,7 +406,6 @@ local textContainer = _new("Frame", {
 	ClipsDescendants = true,
 })
 
--- Shadow layers (phoenix trail effect)
 local shadowColors = {
 	{col = CONFIG.InfernoCold, off = 20, trans = 0.85, size = 160},
 	{col = CONFIG.PhoenixBlue, off = 14, trans = 0.7, size = 150},
@@ -448,10 +454,8 @@ local textGlow = _new("UIStroke", {
 	Color = CONFIG.PhoenixBlue,
 	Thickness = 20,
 	Transparency = 1,
-	ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
 })
 
--- Subtitle
 local subText = _new("TextLabel", {
 	Parent = textContainer,
 	Name = "Subtitle",
@@ -467,7 +471,7 @@ local subText = _new("TextLabel", {
 })
 
 -- ============================================
--- LAYER 7: HEXAGON GRID (Futuristic)
+-- HEXAGON GRID
 -- ============================================
 local hexContainer = _new("Frame", {
 	Name = "HexGrid",
@@ -491,7 +495,6 @@ for row = 0, 8 do
 		})
 		_new("UICorner", {Parent = hex, CornerRadius = UDim.new(0, 6)})
 
-		-- Only show some hexagons
 		if math.random() > 0.7 then
 			hex.BackgroundTransparency = _rand(0.9, 0.97)
 			table.insert(hexagons, hex)
@@ -499,7 +502,6 @@ for row = 0, 8 do
 	end
 end
 
--- Animate hexagons randomly
 for _, hex in ipairs(hexagons) do
 	task.spawn(function()
 		while hex.Parent do
@@ -514,7 +516,7 @@ for _, hex in ipairs(hexagons) do
 end
 
 -- ============================================
--- LAYER 8: PARTICLE BURST SYSTEM
+-- PARTICLE BURST
 -- ============================================
 local burstContainer = _new("Frame", {
 	Name = "BurstContainer",
@@ -524,7 +526,7 @@ local burstContainer = _new("Frame", {
 	ZIndex = 15,
 })
 
-local function particleBurst(count, centerX, centerY)
+local function particleBurst(count)
 	for i = 1, count do
 		local angle = (math.pi * 2 / count) * i + _rand(-0.2, 0.2)
 		local dist = _rand(100, 400)
@@ -554,7 +556,7 @@ local function particleBurst(count, centerX, centerY)
 end
 
 -- ============================================
--- LAYER 9: SCANLINE CRT EFFECT
+-- CRT SCANLINES
 -- ============================================
 local crt = _new("Frame", {
 	Name = "CRT",
@@ -576,7 +578,7 @@ for i = 0, 60 do
 end
 
 -- ============================================
--- LAYER 10: INFO PANEL (Audio Status)
+-- INFO PANEL
 -- ============================================
 local infoPanel = _new("Frame", {
 	Name = "InfoPanel",
@@ -597,7 +599,7 @@ local infoLabel = _new("TextLabel", {
 	Size = UDim2.new(1, -20, 1, -10),
 	Position = UDim2.new(0, 10, 0, 5),
 	BackgroundTransparency = 1,
-	Text = "[PHOENIX v2.0] Memuat sistem...",
+	Text = "[PHOENIX v2.1] Memuat sistem...",
 	Font = Enum.Font.Code,
 	TextSize = 11,
 	TextColor3 = CONFIG.PhoenixCyan,
@@ -605,7 +607,6 @@ local infoLabel = _new("TextLabel", {
 	ZIndex = 200,
 })
 
--- Audio visualizer bars (fake)
 local vizContainer = _new("Frame", {
 	Parent = infoPanel,
 	Size = UDim2.new(0, 60, 0, 20),
@@ -630,7 +631,6 @@ for i = 1, 5 do
 	table.insert(vizBars, bar)
 end
 
--- Animate visualizer
 for _, bar in ipairs(vizBars) do
 	task.spawn(function()
 		while bar.Parent do
@@ -651,7 +651,7 @@ local replayBtn = _new("TextButton", {
 	AnchorPoint = Vector2.new(0.5, 1),
 	BackgroundColor3 = Color3.fromRGB(0, 15, 40),
 	BackgroundTransparency = 0,
-	Text = "↻ REPLAY",
+	Text = "REPLAY",
 	Font = Enum.Font.Code,
 	TextSize = 13,
 	TextColor3 = CONFIG.PhoenixWhite,
@@ -664,11 +664,9 @@ _new("UICorner", {Parent = replayBtn, CornerRadius = UDim.new(0, 10)})
 
 replayBtn.MouseEnter:Connect(function()
 	_tween(replayBtn, {BackgroundColor3 = CONFIG.PhoenixBlue}, 0.2)
-	_tween(replayBtn, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
 end)
 replayBtn.MouseLeave:Connect(function()
 	_tween(replayBtn, {BackgroundColor3 = Color3.fromRGB(0, 15, 40)}, 0.2)
-	_tween(replayBtn, {TextColor3 = CONFIG.PhoenixWhite}, 0.2)
 end)
 
 -- ============================================
@@ -680,7 +678,9 @@ local function closeAll()
 
 	_tween(infoPanel, {BackgroundTransparency = 1}, 0.5)
 	_tween(infoLabel, {TextTransparency = 1}, 0.5)
-	for _, bar in ipairs(vizBars) do _tween(bar, {BackgroundTransparency = 1}, 0.5) end
+	for _, bar in ipairs(vizBars) do
+		_tween(bar, {BackgroundTransparency = 1}, 0.5)
+	end
 
 	_tween(bg, {BackgroundTransparency = 1}, 1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 
@@ -691,27 +691,30 @@ local function closeAll()
 			_tween(child, {TextTransparency = 1}, 1.2)
 		elseif child:IsA("UIStroke") then
 			_tween(child, {Transparency = 1}, 1.2)
-		elseif child:IsA("UIGradient") then
-			-- handled by parent
 		end
 	end
 
 	task.delay(1.4, function()
 		if gui.Parent then
 			gui:Destroy()
-			print("[A2 Phoenix v2.0] Intro selesai. Sistem dimatikan.")
+			print("[A2 Phoenix v2.1] Intro selesai.")
 		end
 	end)
 end
 
 -- ============================================
--- MAIN ANIMATION - PHOENIX REBIRTH SEQUENCE
+-- MAIN ANIMATION
 -- ============================================
 local function playSequence()
 	-- RESET
 	splitLeft.Visible = true
 	splitRight.Visible = true
 	splitLine.Visible = true
+	splitLeft.Position = UDim2.new(0, 0, 0, 0)
+	splitRight.Position = UDim2.new(0.5, 0, 0, 0)
+	splitLine.Size = UDim2.new(0, 4, 1, 0)
+	splitLine.BackgroundTransparency = 1
+
 	textContainer.Visible = false
 	mainText.TextTransparency = 1
 	textStroke.Transparency = 1
@@ -726,10 +729,6 @@ local function playSequence()
 		end
 	end
 
-	-- PHASE 0: Setup
-	infoLabel.Text = "[PHOENIX v2.0] Blue Inferno + Audio System Active"
-	Audio:Play(sndAmbient)
-
 	-- Start ember spawner
 	task.spawn(function()
 		while inferno.Parent do
@@ -738,23 +737,27 @@ local function playSequence()
 		end
 	end)
 
-	-- Pulse glow animation
+	-- Pulse glow
 	task.spawn(function()
 		while pulseGlow.Parent do
-			_tween(pulseGlow, {BackgroundTransparency = _rand(0.85, 0.95), Size = UDim2.new(0, _rand(500, 700), 0, _rand(500, 700))}, 2)
+			_tween(pulseGlow, {
+				BackgroundTransparency = _rand(0.85, 0.95),
+				Size = UDim2.new(0, _rand(500, 700), 0, _rand(500, 700))
+			}, 2)
 			task.wait(2)
 		end
 	end)
 
-	-- PHASE 1: SPLIT SCREEN OPENING (0-2s)
+	-- PHASE 1: SPLIT OPENING
+	infoLabel.Text = "[PHOENIX v2.1] Blue Inferno + Audio System Active"
+	Audio:Play(sndAmbient)
+
 	task.wait(0.5)
 	Audio:Play(sndIntro)
 
-	-- Split line appears
 	_tween(splitLine, {BackgroundTransparency = 0}, 0.3)
 	task.wait(0.3)
 
-	-- Chromatic lines flash
 	for _, line in ipairs(chromLines) do
 		_tween(line, {BackgroundTransparency = _rand(0.7, 0.9)}, 0.1)
 	end
@@ -763,7 +766,6 @@ local function playSequence()
 		_tween(line, {BackgroundTransparency = 1}, 0.3)
 	end
 
-	-- Split opens
 	_tween(splitLeft, {Position = UDim2.new(-0.5, 0, 0, 0)}, 1.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	_tween(splitRight, {Position = UDim2.new(1, 0, 0, 0)}, 1.2, Enum.EasingStyle.Back, Enum.EasingDirection.In)
 	_tween(splitLine, {Size = UDim2.new(0, 4, 0, 0), BackgroundTransparency = 1}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0.5)
@@ -772,19 +774,17 @@ local function playSequence()
 	splitLeft.Visible = false
 	splitRight.Visible = false
 
-	-- PHASE 2: RIPPLE + LOGO REVEAL (2-4s)
+	-- PHASE 2: RIPPLE
 	spawnRipple()
 	Audio:Play(sndWhoosh)
+	infoLabel.Text = "[PHOENIX v2.1] Revealing A2 Identity..."
 
-	infoLabel.Text = "[PHOENIX v2.0] Revealing A2 Identity..."
-
-	-- PHASE 3: A2 TEXT REVEAL (4-6s)
+	-- PHASE 3: A2 TEXT
 	textContainer.Visible = true
 	textContainer.Size = UDim2.new(0, 0, 0, 0)
 
 	_tween(textContainer, {Size = UDim2.new(0, 800, 0, 300)}, 0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 
-	-- Shadow layers appear with delay
 	for i, sh in ipairs(textContainer:GetChildren()) do
 		if sh:IsA("TextLabel") and sh.Name:find("Shadow") then
 			_tween(sh, {TextTransparency = 0.4}, 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.1 + (i * 0.1))
@@ -795,13 +795,12 @@ local function playSequence()
 	_tween(textStroke, {Transparency = 0.1}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.4)
 	_tween(textGlow, {Transparency = 0.6}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.5)
 
-	-- Particle burst
 	task.delay(0.5, function()
-		particleBurst(30, 0.5, 0.5)
+		particleBurst(30)
 		Audio:Play(sndReveal)
 	end)
 
-	-- Text breathing effect
+	-- Breathing
 	task.delay(1.5, function()
 		while mainText.Parent and mainText.TextTransparency < 0.5 do
 			_tween(textGlow, {Transparency = 0.3}, 1.5)
@@ -814,7 +813,7 @@ local function playSequence()
 		end
 	end)
 
-	-- Typewriter subtitle
+	-- Typewriter
 	task.delay(2.5, function()
 		local msg = "Phoenix Rebirth Protocol Initiated..."
 		for i = 1, #msg do
@@ -825,7 +824,7 @@ local function playSequence()
 		end
 	end)
 
-	-- Show replay button
+	-- Replay button
 	task.delay(4, function()
 		if replayBtn.Parent then
 			replayBtn.Visible = true
@@ -857,10 +856,9 @@ replayBtn.MouseButton1Click:Connect(function()
 	replayBtn.Visible = false
 	infoPanel.BackgroundTransparency = 0.3
 	infoLabel.TextTransparency = 0
-	infoLabel.Text = "[PHOENIX v2.0] Replay dimulai..."
+	infoLabel.Text = "[PHOENIX v2.1] Replay dimulai..."
 	for _, bar in ipairs(vizBars) do bar.BackgroundTransparency = 0.3 end
 
-	-- Reset split
 	splitLeft.Position = UDim2.new(0, 0, 0, 0)
 	splitRight.Position = UDim2.new(0.5, 0, 0, 0)
 	splitLine.Size = UDim2.new(0, 4, 1, 0)
@@ -869,6 +867,4 @@ replayBtn.MouseButton1Click:Connect(function()
 	playSequence()
 end)
 
-print("[A2 Phoenix v2.0] LOADED!")
-print("[A2 Phoenix v2.0] Style: Phoenix Rebirth + Blue Inferno + Audio Reactive")
-print("[A2 Phoenix v2.0] Ganti Audio ID di CONFIG.Audio_Intro / Whoosh / Reveal / Ambient")
+print("[A2 Phoenix v2.1] LOADED! Script berjalan normal.")
