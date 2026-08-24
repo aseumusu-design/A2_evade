@@ -63,10 +63,10 @@ local stopCorner = Instance.new("UICorner")
 stopCorner.CornerRadius = UDim.new(0, 8)
 stopCorner.Parent = stopButton
 
--- 5. Sistem Audio (ID: 137477060563101)
+-- 5. Sistem Audio (ID Baru: 119705891276529)
 local soundService = game:GetService("SoundService")
 local sound = Instance.new("Sound")
-sound.SoundId = "rbxassetid://137477060563101"
+sound.SoundId = "rbxassetid://119705891276529"
 sound.Volume = 1
 sound.Parent = soundService
 
@@ -76,7 +76,7 @@ playButton.MouseButton1Click:Connect(function()
 		sound:Stop()
 	end
 	sound:Play()
-	print("Audio diputar ulang dari awal!")
+	print("Audio 'adwa' diputar ulang dari awal!")
 end)
 
 -- 7. Fungsi Tombol Stop
