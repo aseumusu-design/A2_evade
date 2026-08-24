@@ -1,7 +1,6 @@
 -- ============================================
--- A2 INTRO - MINIMALIST METEOR EDITION
+-- A2 INTRO - SAFE SYNC EDITION (FIXED)
 -- StarterGui > ScreenGui > LocalScript
--- Simple: Logo → "WELCOME A2" + Audio → Auto Close
 -- ============================================
 
 local TweenService = game:GetService("TweenService")
@@ -14,387 +13,223 @@ local SoundService = game:GetService("SoundService")
 -- CONFIG
 -- ============================================
 local CONFIG = {
-	-- Audio ID milik user
 	AudioId = "rbxassetid://119705891276529",
-
-	-- Logo
 	LogoId = "rbxassetid://113381647185328",
 
-	-- Warna
-	BgColor = Color3.fromRGB(5, 5, 15),
+	BgColor = Color3.fromRGB(3, 3, 10),
 	TextColor = Color3.fromRGB(255, 255, 255),
-	GlowColor = Color3.fromRGB(0, 200, 255),
-	MeteorColor1 = Color3.fromRGB(0, 150, 255),
-	MeteorColor2 = Color3.fromRGB(100, 220, 255),
-	MeteorColor3 = Color3.fromRGB(200, 240, 255),
-
-	-- Timing
+	GlowColor = Color3.fromRGB(0, 220, 255),
+	
 	LogoShowDuration = 2.0,
-	TextShowDuration = 3.0,
-	AutoCloseDelay = 6.0,
+	AutoCloseDelay = 7.0,
 }
 
 -- ============================================
--- UTILITY
+-- SCREEN GUI (FULLSCREEN)
 -- ============================================
-local function _new(class, props)
-	local inst = Instance.new(class)
-	for k, v in pairs(props or {}) do
-		inst[k] = v
-	end
-	return inst
-end
+local gui = Instance.new("ScreenGui")
+gui.Name = "A2SafeIntro"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 999
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
 
-local function _tween(obj, props, dur, style, dir, delay)
-	if not obj or not obj.Parent then return nil end
-	style = style or Enum.EasingStyle.Quad
-	dir = dir or Enum.EasingDirection.Out
-	delay = delay or 0
-	local info = TweenInfo.new(dur, style, dir, 0, false, delay)
-	local tw = TweenService:Create(obj, info, props)
-	tw:Play()
-	return tw
-end
+-- ============================================
+-- BACKGROUND
+-- ============================================
+local bg = Instance.new("Frame")
+bg.Name = "BG"
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.BackgroundColor3 = CONFIG.BgColor
+bg.BorderSizePixel = 0
+bg.ZIndex = 1
+bg.Parent = gui
 
-local function _rand(a, b)
-	return math.random() * (b - a) + a
+-- Background Stars
+local starContainer = Instance.new("Frame")
+starContainer.Name = "Stars"
+starContainer.Size = UDim2.new(1, 0, 1, 0)
+starContainer.BackgroundTransparency = 1
+starContainer.ZIndex = 2
+starContainer.Parent = bg
+
+for i = 1, 30 do
+	local star = Instance.new("Frame")
+	star.Size = UDim2.new(0, math.random(2, 4), 0, math.random(2, 4))
+	star.Position = UDim2.new(math.random(), 0, math.random(), 0)
+	star.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	star.BackgroundTransparency = math.random() * 0.6 + 0.2
+	star.BorderSizePixel = 0
+	star.Parent = starContainer
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = star
 end
 
 -- ============================================
 -- AUDIO
 -- ============================================
-local introSound = _new("Sound", {
-	Name = "A2IntroAudio",
-	SoundId = CONFIG.AudioId,
-	Volume = 5,
-	Looped = false,
-	Parent = SoundService,
-})
-
--- ============================================
--- SCREEN GUI
--- ============================================
-local gui = _new("ScreenGui", {
-	Name = "A2MinimalIntro",
-	Parent = playerGui,
-	ResetOnSpawn = false,
-	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-	DisplayOrder = 999,
-})
-
--- ============================================
--- BACKGROUND
--- ============================================
-local bg = _new("Frame", {
-	Name = "BG",
-	Parent = gui,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundColor3 = CONFIG.BgColor,
-	BorderSizePixel = 0,
-	ZIndex = 1,
-})
-
--- ============================================
--- METEOR SHOWER EFFECT
--- ============================================
-local meteorContainer = _new("Frame", {
-	Name = "Meteors",
-	Parent = bg,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 2,
-})
-
-local meteorColors = {CONFIG.MeteorColor1, CONFIG.MeteorColor2, CONFIG.MeteorColor3}
-
-local function spawnMeteor()
-	local color = meteorColors[math.random(1, #meteorColors)]
-	local startX = _rand(-0.2, 1.2)
-	local startY = _rand(-0.3, 0.2)
-	local length = _rand(60, 200)
-	local thickness = _rand(1, 3)
-	local dur = _rand(0.8, 2.0)
-	local angle = _rand(15, 45) -- jatuh miring
-
-	-- Meteor head (bright dot)
-	local head = _new("Frame", {
-		Parent = meteorContainer,
-		Size = UDim2.new(0, thickness + 2, 0, thickness + 2),
-		Position = UDim2.new(startX, 0, startY, 0),
-		BackgroundColor3 = CONFIG.MeteorColor3,
-		BackgroundTransparency = 0,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-	})
-	_new("UICorner", {Parent = head, CornerRadius = UDim.new(1, 0)})
-
-	-- Meteor tail (line)
-	local tail = _new("Frame", {
-		Parent = meteorContainer,
-		Size = UDim2.new(0, thickness, 0, length),
-		Position = UDim2.new(startX, 0, startY, 0),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = color,
-		BackgroundTransparency = 0.3,
-		BorderSizePixel = 0,
-		Rotation = angle,
-		ZIndex = 2,
-	})
-
-	-- Gradient tail
-	_new("UIGradient", {
-		Parent = tail,
-		Color = ColorSequence.new({
-			ColorSequenceKeypoint.new(0, color),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 5, 15)),
-		}),
-		Rotation = 90,
-	})
-
-	-- Animate fall
-	local endX = startX + _rand(-0.3, 0.3)
-	local endY = startY + _rand(1.0, 1.5)
-
-	_tween(head, {
-		Position = UDim2.new(endX, 0, endY, 0),
-		BackgroundTransparency = 1,
-	}, dur, Enum.EasingStyle.Linear)
-
-	_tween(tail, {
-		Position = UDim2.new(endX, 0, endY, 0),
-		BackgroundTransparency = 1,
-		Size = UDim2.new(0, thickness, 0, length * 0.5),
-	}, dur, Enum.EasingStyle.Linear)
-
-	game:GetService("Debris"):AddItem(head, dur)
-	game:GetService("Debris"):AddItem(tail, dur)
-end
-
--- Spawner meteor
-local meteorSpawner
-local function startMeteorShower()
-	meteorSpawner = task.spawn(function()
-		while meteorContainer.Parent do
-			spawnMeteor()
-			task.wait(_rand(0.1, 0.4))
-		end
-	end)
-end
+local success, introSound = pcall(function()
+	local sound = Instance.new("Sound")
+	sound.Name = "A2IntroAudio"
+	sound.SoundId = CONFIG.AudioId
+	sound.Volume = 5
+	sound.Looped = false
+	sound.Parent = SoundService
+	return sound
+end)
 
 -- ============================================
 -- LOGO
 -- ============================================
-local logoContainer = _new("Frame", {
-	Name = "LogoContainer",
-	Parent = bg,
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	ZIndex = 10,
-})
+local logoContainer = Instance.new("Frame")
+logoContainer.Name = "LogoContainer"
+logoContainer.Size = UDim2.new(1, 0, 1, 0)
+logoContainer.BackgroundTransparency = 1
+logoContainer.ZIndex = 10
+logoContainer.Parent = bg
 
-local logo = _new("ImageLabel", {
-	Name = "Logo",
-	Parent = logoContainer,
-	Size = UDim2.new(0, 180, 0, 180),
-	Position = UDim2.new(0.5, 0, 0.4, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundTransparency = 1,
-	Image = CONFIG.LogoId,
-	ImageTransparency = 1,
-	ZIndex = 10,
-})
+local logo = Instance.new("ImageLabel")
+logo.Name = "Logo"
+logo.Size = UDim2.new(0, 180, 0, 180)
+logo.Position = UDim2.new(0.5, 0, 0.4, 0)
+logo.AnchorPoint = Vector2.new(0.5, 0.5)
+logo.BackgroundTransparency = 1
+logo.Image = CONFIG.LogoId
+logo.ImageTransparency = 1
+logo.ZIndex = 10
+logo.Parent = logoContainer
 
-_new("UICorner", {Parent = logo, CornerRadius = UDim.new(1, 0)})
+local logoCorner = Instance.new("UICorner")
+logoCorner.CornerRadius = UDim.new(1, 0)
+logoCorner.Parent = logo
 
--- Glow ring around logo
-local glowRing = _new("Frame", {
-	Name = "GlowRing",
-	Parent = logoContainer,
-	Size = UDim2.new(0, 220, 0, 220),
-	Position = UDim2.new(0.5, 0, 0.4, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundTransparency = 1,
-	BorderSizePixel = 0,
-	ZIndex = 9,
-})
-_new("UICorner", {Parent = glowRing, CornerRadius = UDim.new(1, 0)})
+local glowRing = Instance.new("Frame")
+glowRing.Name = "GlowRing"
+glowRing.Size = UDim2.new(0, 220, 0, 220)
+glowRing.Position = UDim2.new(0.5, 0, 0.4, 0)
+glowRing.AnchorPoint = Vector2.new(0.5, 0.5)
+glowRing.BackgroundTransparency = 1
+glowRing.BorderSizePixel = 0
+glowRing.ZIndex = 9
+glowRing.Parent = logoContainer
 
-local ringStroke = _new("UIStroke", {
-	Parent = glowRing,
-	Color = CONFIG.GlowColor,
-	Thickness = 3,
-	Transparency = 1,
-})
+local ringCorner = Instance.new("UICorner")
+ringCorner.CornerRadius = UDim.new(1, 0)
+ringCorner.Parent = glowRing
 
--- ============================================
--- WELCOME A2 TEXT
--- ============================================
-local textContainer = _new("Frame", {
-	Name = "TextContainer",
-	Parent = bg,
-	Size = UDim2.new(1, 0, 0, 100),
-	Position = UDim2.new(0.5, 0, 0.65, 0),
-	AnchorPoint = Vector2.new(0.5, 0.5),
-	BackgroundTransparency = 1,
-	ZIndex = 10,
-	Visible = false,
-})
-
--- Glow shadow
-local textGlow = _new("TextLabel", {
-	Parent = textContainer,
-	Name = "TextGlow",
-	Size = UDim2.new(1, 0, 1, 0),
-	Position = UDim2.new(0, 4, 0, 4),
-	BackgroundTransparency = 1,
-	Text = "WELCOME A2",
-	Font = Enum.Font.Arcade,
-	TextSize = 72,
-	TextColor3 = CONFIG.GlowColor,
-	TextTransparency = 1,
-	ZIndex = 9,
-})
-
--- Main text
-local mainText = _new("TextLabel", {
-	Parent = textContainer,
-	Name = "MainText",
-	Size = UDim2.new(1, 0, 1, 0),
-	BackgroundTransparency = 1,
-	Text = "WELCOME A2",
-	Font = Enum.Font.Arcade,
-	TextSize = 72,
-	TextColor3 = CONFIG.TextColor,
-	TextTransparency = 1,
-	ZIndex = 10,
-})
-
-local textStroke = _new("UIStroke", {
-	Parent = mainText,
-	Color = CONFIG.GlowColor,
-	Thickness = 3,
-	Transparency = 1,
-})
-
--- Subtitle
-local subtitle = _new("TextLabel", {
-	Parent = textContainer,
-	Name = "Subtitle",
-	Size = UDim2.new(1, 0, 0, 30),
-	Position = UDim2.new(0, 0, 1, 10),
-	BackgroundTransparency = 1,
-	Text = "",
-	Font = Enum.Font.Code,
-	TextSize = 14,
-	TextColor3 = CONFIG.GlowColor,
-	TextTransparency = 1,
-	ZIndex = 10,
-})
+local ringStroke = Instance.new("UIStroke")
+ringStroke.Color = CONFIG.GlowColor
+ringStroke.Thickness = 3
+ringStroke.Transparency = 1
+ringStroke.Parent = glowRing
 
 -- ============================================
--- CLOSE FUNCTION
+-- TEXT CONTAINER (WELCOME & A2)
 -- ============================================
-local function closeIntro()
-	_tween(bg, {BackgroundTransparency = 1}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local textContainer = Instance.new("Frame")
+textContainer.Name = "TextContainer"
+textContainer.Size = UDim2.new(1, 0, 0, 180)
+textContainer.Position = UDim2.new(0.5, 0, 0.65, 0)
+textContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+textContainer.BackgroundTransparency = 1
+textContainer.ZIndex = 10
+textContainer.Visible = false
+textContainer.Parent = bg
 
-	for _, child in ipairs(bg:GetDescendants()) do
-		if child:IsA("Frame") and child ~= bg then
-			_tween(child, {BackgroundTransparency = 1}, 1.0)
-		elseif child:IsA("TextLabel") or child:IsA("TextButton") then
-			_tween(child, {TextTransparency = 1}, 1.0)
-		elseif child:IsA("ImageLabel") then
-			_tween(child, {ImageTransparency = 1}, 1.0)
-		elseif child:IsA("UIStroke") then
-			_tween(child, {Transparency = 1}, 1.0)
-		end
-	end
+-- Baris Atas: WELCOME
+local welcomeText = Instance.new("TextLabel")
+welcomeText.Name = "WelcomeText"
+welcomeText.Size = UDim2.new(1, 0, 0, 60)
+welcomeText.Position = UDim2.new(0, 0, 0, 0)
+welcomeText.BackgroundTransparency = 1
+welcomeText.Text = ""
+welcomeText.Font = Enum.Font.Arcade
+welcomeText.TextSize = 56
+welcomeText.TextColor3 = CONFIG.TextColor
+welcomeText.TextTransparency = 1
+welcomeText.ZIndex = 10
+welcomeText.Parent = textContainer
 
-	task.delay(1.2, function()
-		if gui.Parent then
-			gui:Destroy()
-			print("[A2 Intro] Selesai.")
-		end
-	end)
-end
+local welcomeStroke = Instance.new("UIStroke")
+welcomeStroke.Color = CONFIG.GlowColor
+welcomeStroke.Thickness = 2
+welcomeStroke.Transparency = 1
+welcomeStroke.Parent = welcomeText
+
+-- Baris Bawah: A2
+local a2Text = Instance.new("TextLabel")
+a2Text.Name = "A2Text"
+a2Text.Size = UDim2.new(1, 0, 0, 70)
+a2Text.Position = UDim2.new(0, 0, 0, 65)
+a2Text.BackgroundTransparency = 1
+a2Text.Text = "A2"
+a2Text.Font = Enum.Font.Arcade
+a2Text.TextSize = 72
+a2Text.TextColor3 = CONFIG.GlowColor
+a2Text.TextTransparency = 1
+a2Text.ZIndex = 10
+a2Text.Parent = textContainer
+
+local a2Stroke = Instance.new("UIStroke")
+a2Stroke.Color = CONFIG.TextColor
+a2Stroke.Thickness = 3
+a2Stroke.Transparency = 1
+a2Stroke.Parent = a2Text
 
 -- ============================================
--- MAIN ANIMATION
+-- ANIMATION RUNNER
 -- ============================================
-local function playIntro()
-	-- Reset
-	logo.ImageTransparency = 1
-	logo.Size = UDim2.new(0, 120, 0, 120)
-	glowRing.Size = UDim2.new(0, 140, 0, 140)
-	ringStroke.Transparency = 1
-
-	textContainer.Visible = false
-	mainText.TextTransparency = 1
-	textGlow.TextTransparency = 1
-	textStroke.Transparency = 1
-	subtitle.Text = ""
-	subtitle.TextTransparency = 1
-
-	-- Start meteor shower
-	startMeteorShower()
-
-	-- PHASE 1: Logo muncul
-	_tween(logo, {ImageTransparency = 0}, 1.0)
-	_tween(logo, {Size = UDim2.new(0, 180, 0, 180)}, 1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-
-	_tween(glowRing, {Size = UDim2.new(0, 260, 0, 260)}, 1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.2)
-	_tween(ringStroke, {Transparency = 0.5}, 1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
+task.spawn(function()
+	-- Fade-in logo awal
+	TweenService:Create(logo, TweenInfo.new(1.0), {ImageTransparency = 0}):Play()
+	TweenService:Create(logo, TweenInfo.new(1.2, Enum.EasingStyle.Back), {Size = UDim2.new(0, 180, 0, 180)}):Play()
+	TweenService:Create(ringStroke, TweenInfo.new(1.0), {Transparency = 0.5}):Play()
 
 	task.wait(CONFIG.LogoShowDuration)
 
-	-- PHASE 2: Logo fade out, text + audio muncul BERSAMAAN
-	_tween(logo, {ImageTransparency = 1, Size = UDim2.new(0, 250, 0, 250)}, 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	_tween(glowRing, {Size = UDim2.new(0, 350, 0, 350)}, 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-	_tween(ringStroke, {Transparency = 1}, 0.6)
+	-- Hilangkan logo
+	TweenService:Create(logo, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {ImageTransparency = 1}):Play()
+	TweenService:Create(ringStroke, TweenInfo.new(0.6), {Transparency = 1}):Play()
 
-	-- Play audio BERSAMAAN dengan text muncul
-	pcall(function() introSound:Play() end)
-
+	-- Putar audio & tampilkan teks bersamaan
+	if success and introSound then
+		pcall(function() introSound:Play() end)
+	end
+	
 	textContainer.Visible = true
+	welcomeText.TextTransparency = 0
+	welcomeStroke.Transparency = 0.2
 
-	-- Text reveal
-	_tween(mainText, {TextTransparency = 0}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.2)
-	_tween(textGlow, {TextTransparency = 0.5}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.1)
-	_tween(textStroke, {Transparency = 0.1}, 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0.3)
+	-- Efek Ketik "WELCOME ┃"
+	local targetMsg = "WELCOME"
+	for i = 1, #targetMsg do
+		welcomeText.Text = string.sub(targetMsg, 1, i) .. " ┃"
+		task.wait(0.1)
+	end
+	welcomeText.Text = targetMsg
 
-	-- Typewriter subtitle
-	task.delay(0.8, function()
-		local msg = "Experience Loading..."
-		for i = 1, #msg do
-			if not subtitle.Parent then break end
-			subtitle.Text = string.sub(msg, 1, i)
-			_tween(subtitle, {TextTransparency = 0}, 0.05)
-			task.wait(0.05)
-		end
-	end)
+	-- Munculkan teks "A2" di bawahnya
+	TweenService:Create(a2Text, TweenInfo.new(0.5, Enum.EasingStyle.Back), {TextTransparency = 0}):Play()
+	TweenService:Create(a2Stroke, TweenInfo.new(0.5), {Transparency = 0.1}):Play()
 
-	-- Glow breathing
-	task.delay(1.5, function()
-		while mainText.Parent and mainText.TextTransparency < 0.5 do
-			_tween(textGlow, {TextTransparency = 0.2}, 1.5)
-			_tween(textStroke, {Transparency = 0}, 1.5)
-			task.wait(1.5)
-			if not mainText.Parent then break end
-			_tween(textGlow, {TextTransparency = 0.6}, 1.5)
-			_tween(textStroke, {Transparency = 0.2}, 1.5)
-			task.wait(1.5)
-		end
-	end)
-
-	-- Auto close
+	-- Auto Close
 	task.delay(CONFIG.AutoCloseDelay, function()
-		if gui.Parent then closeIntro() end
+		TweenService:Create(bg, TweenInfo.new(1.0), {BackgroundTransparency = 1}):Play()
+		for _, v in ipairs(bg:GetDescendants()) do
+			if v:IsA("TextLabel") then
+				TweenService:Create(v, TweenInfo.new(1.0), {TextTransparency = 1}):Play()
+			elseif v:IsA("ImageLabel") then
+				TweenService:Create(v, TweenInfo.new(1.0), {ImageTransparency = 1}):Play()
+			elseif v:IsA("UIStroke") then
+				TweenService:Create(v, TweenInfo.new(1.0), {Transparency = 1}):Play()
+			end
+		end
+		task.wait(1.2)
+		gui:Destroy()
 	end)
-end
+end)
 
--- ============================================
--- START
--- ============================================
-playIntro()
-
-print("[A2 Intro] Minimalist Meteor Edition Loaded!")
-print("[A2 Intro] Audio ID: " .. CONFIG.AudioId)
+print("[A2 Intro] Loaded Successfully!")
