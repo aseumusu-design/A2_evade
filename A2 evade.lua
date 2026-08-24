@@ -1,5 +1,6 @@
 -- // ============================================================
--- // 🔥 EVADE HUB – ORION UI (NO MERCY STYLE)
+-- // 🔥 EVADE HUB – ORION A2 UI (NO MERCY STYLE)
+-- // Auto Fly on Jump + Safe Landing
 -- // ============================================================
 
 -- // ========== 1. ICON & SETUP ==========
@@ -10,6 +11,7 @@ local ICON = {
     Zap      = "rbxassetid://7733771628",
     Settings = "rbxassetid://7734053495",
     Logo     = "rbxassetid://102609928046926",
+    Banner   = "rbxassetid://117118608066997",
 }
 
 local function GetHolder()
@@ -47,7 +49,7 @@ local Window = OrionLib:MakeWindow({
     Name = "🔥 EVADE HUB",
     HidePremium = false,
     SaveConfig = true,
-    ConfigFolder = "EvadeHubOrion",
+    ConfigFolder = "EvadeHubOrionA2",
     IntroEnabled = true,
     IntroText = "EVADE HUB",
     IntroIcon = ICON.Logo,
@@ -232,6 +234,7 @@ local jumpPowerValue = 80
 local FlyEnabled = false
 local flySpeedValue = 80
 local flying = false
+local autoFlyEnabled = false  -- Auto Fly on Jump
 local bodyVelocity = nil
 local bodyGyro = nil
 
@@ -256,7 +259,85 @@ local ESPPlayerEnabled = false
 local ESPBotEnabled = false
 local ESPObjects = {}
 
--- // ========== 7. UTILITY FUNCTIONS ==========
+-- // ========== 7. AUTO FLY ON JUMP (SAFE LANDING) ==========
+local function startFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not root or not humanoid or flying then return end
+    flying = true
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 10^6
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = root
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 10^6
+    bodyGyro.CFrame = root.CFrame
+    bodyGyro.Parent = root
+    humanoid.PlatformStand = true
+end
+
+local function stopFly()
+    if not flying then return end
+    flying = false
+    if bodyVelocity then bodyVelocity:Destroy() end
+    if bodyGyro then bodyGyro:Destroy() end
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.PlatformStand = false
+    end
+end
+
+-- Auto Fly on Jump: saat lompat -> terbang, saat mendarat -> turun aman
+local function setupAutoFly(humanoid)
+    if not humanoid then return end
+    humanoid.StateChanged:Connect(function(oldState, newState)
+        if not autoFlyEnabled then return end
+        
+        if newState == Enum.HumanoidStateType.Jumping or newState == Enum.HumanoidStateType.Freefall then
+            if not flying then
+                startFly()
+            end
+        elseif newState == Enum.HumanoidStateType.Landed or humanoid.FloorMaterial ~= Enum.Material.Air then
+            if flying then
+                stopFly()
+            end
+        end
+    end)
+end
+
+-- Setup auto fly saat karakter respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(1)
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        setupAutoFly(humanoid)
+    end
+    applySpeed()
+    applyJump()
+end)
+
+-- Update arah terbang (ikut kamera)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if not flying then continue end
+        local char = LocalPlayer.Character
+        if not char then continue end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
+        local camera = workspace.CurrentCamera
+        if camera and bodyVelocity then
+            bodyVelocity.Velocity = camera.CFrame.LookVector * flySpeedValue
+        end
+        if bodyGyro and camera then
+            bodyGyro.CFrame = camera.CFrame
+        end
+    end
+end)
+
+-- // ========== 8. UTILITY FUNCTIONS ==========
 local function isPlayerAsset(instance)
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character and instance:IsDescendantOf(player.Character) then
@@ -323,7 +404,7 @@ local function teleportTo(hrp, pos, duration)
     tween.Completed:Wait()
 end
 
--- // ========== 8. AUTO REVIVE ==========
+-- // ========== 9. AUTO REVIVE ==========
 local function autoRevive()
     local char = LocalPlayer.Character
     if not char then return end
@@ -375,7 +456,7 @@ task.spawn(function()
     end
 end)
 
--- // ========== 9. AUTO HEAL ==========
+-- // ========== 10. AUTO HEAL ==========
 local function autoHeal()
     local char = LocalPlayer.Character
     if not char then return end
@@ -388,19 +469,16 @@ local function autoHeal()
     if health <= 0 then return end
     if health / maxHealth * 100 > healThreshold then return end
 
-    -- Coba remote Action dengan "Heal"
     if ActionRemote then
         pcall(function() ActionRemote:FireServer("Heal") end)
         pcall(function() ActionRemote:FireServer("HealMe") end)
         pcall(function() ActionRemote:FireServer("HealSelf") end)
     end
 
-    -- Coba Interact
     if InteractRemote then
         pcall(function() InteractRemote:FireServer("Heal") end)
     end
 
-    -- Cari tombol heal di GUI
     local gameGui = LocalPlayer.PlayerGui:FindFirstChild("Game")
     if gameGui then
         for _, btn in pairs(gameGui:GetDescendants()) do
@@ -424,7 +502,7 @@ task.spawn(function()
     end
 end)
 
--- // ========== 10. AUTO COLLECT ==========
+-- // ========== 11. AUTO COLLECT ==========
 local function autoCollect()
     if not CollectiblesInvoke then return end
     local char = LocalPlayer.Character
@@ -458,7 +536,7 @@ task.spawn(function()
     end
 end)
 
--- // ========== 11. AFK FARM & AUTO ITEM ==========
+-- // ========== 12. AFK FARM & AUTO ITEM ==========
 task.spawn(function()
     while true do
         local items = getAllItems()
@@ -576,61 +654,6 @@ end)
 if LocalPlayer.Character then
     setupCharacter(LocalPlayer.Character)
 end
-
--- // ========== 12. FLY ==========
-local function startFly()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not root or not humanoid or flying then return end
-    flying = true
-    bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 10^6
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.Parent = root
-    bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 10^6
-    bodyGyro.CFrame = root.CFrame
-    bodyGyro.Parent = root
-    humanoid.PlatformStand = true
-end
-
-local function stopFly()
-    if not flying then return end
-    flying = false
-    if bodyVelocity then bodyVelocity:Destroy() end
-    if bodyGyro then bodyGyro:Destroy() end
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.PlatformStand = false
-    end
-end
-
-task.spawn(function()
-    while true do
-        task.wait(0.1)
-        if not flying then continue end
-        local char = LocalPlayer.Character
-        if not char then continue end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
-        local camera = workspace.CurrentCamera
-        if camera and bodyVelocity then
-            bodyVelocity.Velocity = camera.CFrame.LookVector * flySpeedValue
-        end
-        if bodyGyro and camera then
-            bodyGyro.CFrame = camera.CFrame
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F and FlyEnabled then
-        if flying then stopFly() else startFly() end
-    end
-end)
 
 -- // ========== 13. SPEED & JUMP ==========
 local function applySpeed()
@@ -968,6 +991,7 @@ local PlayerTab   = Window:MakeTab({ Name = "🧑 Player", Icon = ICON.User, Pre
 local GenTab      = Window:MakeTab({ Name = "⚙️ Generator", Icon = ICON.Zap, PremiumOnly = false })
 local VisualTab   = Window:MakeTab({ Name = "👁️ Visual", Icon = ICON.Eye, PremiumOnly = false })
 local SpeedTab    = Window:MakeTab({ Name = "🏃 Speed", Icon = ICON.Zap, PremiumOnly = false })
+local FlyTab      = Window:MakeTab({ Name = "✈️ Fly", Icon = ICON.Zap, PremiumOnly = false })
 local UtilityTab  = Window:MakeTab({ Name = "🛠️ Utility", Icon = ICON.Settings, PremiumOnly = false })
 local MiscTab     = Window:MakeTab({ Name = "🎮 Misc", Icon = ICON.Settings, PremiumOnly = false })
 local SettingsTab = Window:MakeTab({ Name = "Pengaturan", Icon = ICON.Settings, PremiumOnly = false })
@@ -976,7 +1000,7 @@ local SettingsTab = Window:MakeTab({ Name = "Pengaturan", Icon = ICON.Settings, 
 local InfoSec = InfoTab:AddSection({ Name = "Tentang" })
 InfoSec:AddLabel("🔥 EVADE HUB")
 InfoSec:AddLabel("Script by: No Mercy Team")
-InfoSec:AddLabel("Fitur: AFK Farm, Auto Item, Auto Revive, Auto Collect, Auto Heal, Speed, Jump, Fly, NoClip, Anti AFK, Auto Respawn, God Mode, Full Bright, ESP, Server Hop, Redeem Codes")
+InfoSec:AddLabel("Fitur: AFK Farm, Auto Item, Auto Revive, Auto Collect, Auto Heal, Speed, Jump, Auto Fly on Jump, Safe Landing, NoClip, ESP, dll.")
 InfoSec:AddButton({
     Name = "Copy Link Discord",
     Callback = function()
@@ -1205,7 +1229,44 @@ SpeedSec:AddSlider({
     end
 })
 
--- // ========== 32. TAB UTILITY ==========
+-- // ========== 32. TAB FLY (Auto Fly on Jump + Safe Landing) ==========
+local FlySec = FlyTab:AddSection({ Name = "✈️ Auto Fly on Jump" })
+FlySec:AddToggle({
+    Name = "✈️ Auto Fly on Jump",
+    Description = "Lompat = Terbang, Mendarat = Turun Aman (tanpa fall damage)",
+    Default = false,
+    Callback = function(Value)
+        autoFlyEnabled = Value
+        if not Value and flying then
+            stopFly()
+        end
+        VD_Notify("Auto Fly", Value and "✅ Aktif (Lompat = Terbang)" or "❌ Nonaktif", 3)
+    end
+})
+
+FlySec:AddSlider({
+    Name = "🚀 Kecepatan Terbang",
+    Min = 20,
+    Max = 200,
+    Default = 80,
+    Increment = 1,
+    ValueName = "speed",
+    Callback = function(v)
+        flySpeedValue = v
+    end
+})
+
+FlySec:AddToggle({
+    Name = "✈️ Manual Fly (F)",
+    Description = "Tekan F untuk terbang/turun (toggle)",
+    Default = false,
+    Callback = function(Value)
+        FlyEnabled = Value
+        if not Value and flying then stopFly() end
+    end
+})
+
+-- // ========== 33. TAB UTILITY ==========
 local UtilitySec = UtilityTab:AddSection({ Name = "🛠️ Utility" })
 UtilitySec:AddToggle({
     Name = "🛡️ Anti AFK",
@@ -1220,27 +1281,6 @@ UtilitySec:AddToggle({
     Default = false,
     Callback = function(Value)
         AutoRespawnEnabled = Value
-    end
-})
-
-UtilitySec:AddToggle({
-    Name = "✈️ Fly Mode (F)",
-    Default = false,
-    Callback = function(Value)
-        FlyEnabled = Value
-        if not Value and flying then stopFly() end
-    end
-})
-
-UtilitySec:AddSlider({
-    Name = "🚀 Kecepatan Terbang",
-    Min = 20,
-    Max = 200,
-    Default = 80,
-    Increment = 1,
-    ValueName = "speed",
-    Callback = function(v)
-        flySpeedValue = v
     end
 })
 
@@ -1293,7 +1333,7 @@ UtilitySec:AddButton({
     end
 })
 
--- // ========== 33. TAB MISC ==========
+-- // ========== 34. TAB MISC ==========
 local MiscSec = MiscTab:AddSection({ Name = "🎮 Lain-lain" })
 MiscSec:AddButton({
     Name = "🔄 Server Hop",
@@ -1311,7 +1351,7 @@ MiscSec:AddButton({
     end
 })
 
--- // ========== 34. TAB PENGATURAN ==========
+-- // ========== 35. TAB PENGATURAN ==========
 local SettingsSec = SettingsTab:AddSection({ Name = "Pengaturan" })
 SettingsSec:AddButton({
     Name = "💾 Save Config",
@@ -1336,11 +1376,22 @@ SettingsSec:AddButton({
     end
 })
 
--- // ========== 35. NOTIFIKASI LOAD ==========
+-- // ========== 36. SETUP AUTO FLY SAAT LOAD ==========
+-- Setup auto fly untuk karakter pertama
+local initialChar = LocalPlayer.Character
+if initialChar then
+    task.wait(1)
+    local humanoid = initialChar:FindFirstChild("Humanoid")
+    if humanoid then
+        setupAutoFly(humanoid)
+    end
+end
+
+-- // ========== 37. NOTIFIKASI LOAD ==========
 VD_Notify("🔥 EVADE HUB", "Semua fitur siap digunakan!", 4)
-print("[EVADE HUB] Loaded — Orion UI + ESP + Auto Heal")
+VD_Notify("✈️ Auto Fly", "Aktifkan di tab Fly! Lompat = Terbang, Mendarat = Aman", 5)
+
+print("[EVADE HUB] Loaded — Orion A2 UI + Auto Fly on Jump + Safe Landing")
 print("📌 Buka menu dan aktifkan fitur yang diinginkan!")
+print("📌 Auto Fly: aktifkan di tab '✈️ Fly' -> lompat untuk terbang, mendarat aman!")
 print("📌 Klik bubble logo untuk buka UI lagi")
-print("📌 ESP Player & Bot aktif di tab Visual")
-print("📌 Auto Heal aktif di tab Player")
-print("📌 AFK Farm & Auto Item aktif di tab Generator")
